@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -17,7 +16,7 @@ type server struct {
 }
 
 func (s *server) RegisterAgentIdentity(ctx context.Context, in *pb.AgentIdentity) (*pb.Status, error) {
-	fmt.Println("Agent Identity is ", in.Identity)
+	log.Println("Agent Identity is ", in.Identity)
 	os.Setenv("AGENT_IDENTITY", in.Identity)
 	return &pb.Status{Status: 200, ErrorMessage: "nil"}, nil
 }
