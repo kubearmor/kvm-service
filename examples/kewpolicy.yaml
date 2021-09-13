@@ -1,0 +1,8 @@
+apiVersion: security.kubearmor.com/v1
+kind: KubeArmorExternalWorkloadPolicy
+metadata:
+  name: external-workload-02
+  labels:
+   io.kubernetes.pod.namespace: default 
+spec:
+  ipv4-alloc-cidr: 10.192.1.0/30
