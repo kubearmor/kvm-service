@@ -8,13 +8,14 @@ import (
 	"io"
 	"sort"
 	//"strings"
-	"time"
-    "fmt"
-    "reflect"
+	"fmt"
+	"log"
 	"math/rand"
-    "log"
+	"reflect"
+	"time"
 
 	kl "github.com/kubearmor/KVMService/service/common"
+	kg "github.com/kubearmor/KVMService/service/log"
 	tp "github.com/kubearmor/KVMService/service/types"
 )
 
@@ -89,6 +90,7 @@ func (dm *KVMS) GetExternalWorkLoadAllLabels() []string {
 	}
 	return externalWorkloadLabels
 }
+
 // WatchHostSecurityPolicies Function
 func (dm *KVMS) WatchHostSecurityPolicies() {
 	for {
@@ -123,7 +125,7 @@ func (dm *KVMS) WatchHostSecurityPolicies() {
 				secPolicy.Metadata["policyName"] = event.Object.Metadata.Name
 
 				if err := kl.Clone(event.Object.Spec, &secPolicy.Spec); err != nil {
-                    log.Fatal("Failed to clone a spec")
+					log.Fatal("Failed to clone a spec")
 				}
 
 				kl.ObjCommaExpandFirstDupOthers(&secPolicy.Spec.Network.MatchProtocols)
@@ -486,9 +488,11 @@ func (dm *KVMS) WatchExternalWorkloadSecurityPolicies() {
 			continue
 		}
 
+		log.Print("Watching ExternalWorkload policies")
 		if resp := K8s.WatchK8sExternalWorkloadSecurityPolicies(); resp != nil {
 			defer resp.Body.Close()
 
+			kg.Print("Watching ExternalWorkload policies")
 			decoder := json.NewDecoder(resp.Body)
 			for {
 				event := tp.K8sKubeArmorExternalWorkloadPolicyEvent{}

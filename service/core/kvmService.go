@@ -15,7 +15,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-
 // ClientConn is the wrapper for a grpc client conn
 type ClientConn struct {
 	*grpc.ClientConn
@@ -61,7 +60,7 @@ type KVMS struct {
 }
 
 // NewKVMSDaemon Function
-func NewKVMSDaemon() *KVMS {
+func NewKVMSDaemon(enableHostPolicy, enableExternalWorkloadPolicy bool) *KVMS {
 	dm := new(KVMS)
 
 	/*
@@ -86,8 +85,8 @@ func NewKVMSDaemon() *KVMS {
 	dm.LogPath = ""
 	dm.LogFilter = ""
 
-	dm.EnableHostPolicy = true
-	dm.EnableExternalWorkloadPolicy = true
+	dm.EnableHostPolicy = enableHostPolicy
+	dm.EnableExternalWorkloadPolicy = enableExternalWorkloadPolicy
 
 	dm.HostSecurityPolicies = []tp.HostSecurityPolicy{}
 	dm.HostSecurityPoliciesLock = new(sync.RWMutex)
@@ -134,9 +133,9 @@ func GetOSSigChannel() chan os.Signal {
 // ========== //
 
 // KVMSService Function
-func KVMSDaemon() {
+func KVMSDaemon(enableExternalWorkloadPolicyPtr, enableHostPolicyPtr bool) {
 	// create a daemon
-	dm := NewKVMSDaemon()
+	dm := NewKVMSDaemon(enableExternalWorkloadPolicyPtr, enableHostPolicyPtr)
 
 	// wait for a while
 	time.Sleep(time.Second * 1)
@@ -150,12 +149,9 @@ func KVMSDaemon() {
 			go dm.WatchHostSecurityPolicies()
 		}
 
-		kg.Print("dm.EnableExternalWorkloadPolicy true/false")
 		if dm.EnableExternalWorkloadPolicy {
-			kg.Print("dm.EnableExternalWorkloadPolicy")
 			go dm.WatchExternalWorkloadSecurityPolicies()
 		}
-		kg.Print("dm.EnableExternalWorkloadPolicy true/false")
 
 	} else {
 		kg.Print("dm.EnableExternalWorkloadPolicy true/false")

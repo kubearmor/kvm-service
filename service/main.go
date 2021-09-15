@@ -37,17 +37,17 @@ func main() {
 		logFilterPtr := flag.String("logFilter", "policy", "Filter for what kinds of alerts and logs to receive, {policy|system|all}")
 
 		// options (boolean)
-		enableHostPolicyPtr := flag.Bool("enableHostPolicy", false, "enabling host policies")
 		enableEnforcerPerPodPtr := flag.Bool("enableEnforcerPerPod", false, "enabling the enforcer per pod")
-		enableExternalWorkloadPolicyPtr := flag.Bool("enableExternalWorkloadPolicy", false, "enabling external workload policies")
 		//enableExternalWorkloadPolicyPtr := true
 	*/
+    enableHostPolicyPtr := flag.Bool("enableHostPolicy", true, "enabling host policies")
+    enableExternalWorkloadPolicyPtr := flag.Bool("enableExternalWorkloadPolicy", true, "enabling external workload policies")
 
 	flag.Parse()
 
 	// == //
 
-	core.KVMSDaemon()
+	core.KVMSDaemon(*enableHostPolicyPtr, *enableExternalWorkloadPolicyPtr)
 
 	// == //
 }
