@@ -3,3 +3,21 @@ syntax = "proto3";
 package kvmService;
 
 option go_package="github.com/kubearmor/KVMService/protobuf";
+
+message agentIdentity {
+    string identity = 1;
+}
+
+message status {
+    int32 status = 1;
+}
+
+message policyData {
+    string policyName = 1;
+    bytes policyData = 2;
+}
+
+service KVM {
+    rpc registerAgentIdentity (agentIdentity) returns (status);
+    rpc sendPolicy (stream status) returns (stream policyData);
+} 
