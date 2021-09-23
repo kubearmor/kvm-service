@@ -19,33 +19,12 @@ type KubeArmorExternalWorkloadPolicy struct {
 	// +deepequal-gen=false
 	metav1.ObjectMeta `json:"metadata"`
 
-	// Spec is the desired configuration of the external KubeArmor workload.
-	Spec KubeArmorExternalWorkloadPolicySpec `json:"spec,omitempty"`
-
 	// Status is the most recent status of the external KubeArmor workload.
 	// It is a read-only field.
 	//
 	// +deepequal-gen=false
 	// +kubebuilder:validation:Optional
 	Status KubeArmorExternalWorkloadPolicyStatus `json:"status"`
-}
-
-// KubeArmorExternalWorkloadPolicySpec specifies the configurations for redirecting traffic
-// within a workload.
-//
-// +kubebuilder:validation:Type=object
-type KubeArmorExternalWorkloadPolicySpec struct {
-	// IPv4AllocCIDR is the range of IPv4 addresses in the CIDR format that the external workload can
-	// use to allocate IP addresses for the tunnel device and the health endpoint.
-	//
-	// +kubebuilder:validation:Pattern=`^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/([0-9]|[1-2][0-9]|3[0-2])$`
-	IPv4AllocCIDR string `json:"ipv4-alloc-cidr,omitempty"`
-
-	// IPv6AllocCIDR is the range of IPv6 addresses in the CIDR format that the external workload can
-	// use to allocate IP addresses for the tunnel device and the health endpoint.
-	//
-	// +kubebuilder:validation:Pattern=`^s*((([0-9A-Fa-f]{1,4}:){7}(:|([0-9A-Fa-f]{1,4})))|(([0-9A-Fa-f]{1,4}:){6}:([0-9A-Fa-f]{1,4})?)|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){0,1}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){0,2}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){0,3}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){0,4}):([0-9A-Fa-f]{1,4})?))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){0,5}):([0-9A-Fa-f]{1,4})?))|(:(:|((:[0-9A-Fa-f]{1,4}){1,7}))))(%.+)?s*/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$`
-	IPv6AllocCIDR string `json:"ipv6-alloc-cidr,omitempty"`
 }
 
 // KubeArmorExternalWorkloadPolicyStatus is the status of a the external KubeArmor workload.

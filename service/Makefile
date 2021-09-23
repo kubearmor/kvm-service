@@ -13,13 +13,11 @@ KVMSERVICE_PID    = $(shell pgrep kvmservice)
 
 .PHONY: build
 build:
-	$(CURDIR)/patch.sh
 	cd $(CURDIR); go mod tidy
 	cd $(CURDIR); go build -o kvmservice main.go
 
 .PHONY: build-test
 build-test:
-	$(CURDIR)/patch.sh
 	cd $(CURDIR); go mod tidy
 	cd $(CURDIR); sudo -E $(GO_EXEC) test -covermode=atomic -coverpkg=./... -c . -o kvmservice
 

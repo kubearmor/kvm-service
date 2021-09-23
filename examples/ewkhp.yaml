@@ -5,8 +5,8 @@ metadata:
 spec:
   nodeSelector:
     matchLabels:
-      kubearmorexternalworkloads.security.kubearmor.com: external-workload-01
-        #kubernetes.io/hostname: kubearmor-dev
+      abc: yz
+        #kubearmorexternalworkloads.security.kubearmor.com: external-workload-01
   severity: 5
   file:
     matchPaths:

@@ -4,12 +4,15 @@
 package core
 
 import (
+	"context"
+    "log"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
 
+	etcd "github.com/kubearmor/KVMService/service/etcd"
 	kg "github.com/kubearmor/KVMService/service/log"
 	tp "github.com/kubearmor/KVMService/service/types"
 	"google.golang.org/grpc"
@@ -17,7 +20,7 @@ import (
 
 // ClientConn is the wrapper for a grpc client conn
 type ClientConn struct {
-	*grpc.ClientConn
+	conn *grpc.ClientConn
 	unhealthy bool
 }
 
@@ -35,13 +38,19 @@ func init() {
 
 // KVMS Structure
 type KVMS struct {
+	EtcdClient *etcd.EtcdClient
 	// gRPC
 	gRPCPort  string
 	LogPath   string
 	LogFilter string
 
+    IdentityConnPool []ClientConn
+
 	EnableHostPolicy             bool
 	EnableExternalWorkloadPolicy bool
+
+    MapEtcdEWIdentityLabels map[string]string
+    EtcdEWLabels []string
 
 	// Host Security policies
 	HostSecurityPolicies     []tp.HostSecurityPolicy
@@ -63,33 +72,42 @@ type KVMS struct {
 func NewKVMSDaemon(enableHostPolicy, enableExternalWorkloadPolicy bool) *KVMS {
 	dm := new(KVMS)
 
-	/*
-			if clusterName == "" {
-				if val, ok := os.LookupEnv("CLUSTER_NAME"); ok {
-					dm.ClusterName = val
-				} else {
-					dm.ClusterName = "Default"
-				}
-			} else {
-				dm.ClusterName = clusterName
-			}
-		dm.gRPCPort = gRPCPort
-		dm.LogPath = logPath
-		dm.LogFilter = logFilter
-
-		dm.EnableHostPolicy = enableHostPolicy
-		dm.EnableExternalWorkloadPolicy = enableExternalWorkloadPolicy
-	*/
+	dm.EtcdClient = etcd.NewEtcdClient()
+    dm.MapEtcdEWIdentityLabels = make(map[string]string)
+    dm.EtcdEWLabels = make([]string, 0)
 
 	dm.gRPCPort = ""
 	dm.LogPath = ""
 	dm.LogFilter = ""
+    dm.IdentityConnPool = nil
+
+    err := dm.EtcdClient.EtcdPut(context.TODO(), "/externalworkloads/34", "abc=yzx")
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = dm.EtcdClient.EtcdPut(context.TODO(), "/externalworkloads/12", "abc=yzx")
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = dm.EtcdClient.EtcdPut(context.TODO(), "/externalworkloads/foo2", "1235")
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = dm.EtcdClient.EtcdPut(context.TODO(), "/externalworkloads/foo3", "1234")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	dm.EnableHostPolicy = enableHostPolicy
 	dm.EnableExternalWorkloadPolicy = enableExternalWorkloadPolicy
 
 	dm.HostSecurityPolicies = []tp.HostSecurityPolicy{}
 	dm.HostSecurityPoliciesLock = new(sync.RWMutex)
+	dm.ExternalWorkloadSecurityPoliciesLock = new(sync.RWMutex)
+
+	dm.MapIdentityToLabel = make(map[uint16]string)
+	dm.MapLabelToIdentity = make(map[string][]uint16)
+	dm.MapExternalWorkloadConnIdentity = make(map[uint16]ClientConn)
 
 	dm.WgDaemon = sync.WaitGroup{}
 
@@ -149,9 +167,10 @@ func KVMSDaemon(enableExternalWorkloadPolicyPtr, enableHostPolicyPtr bool) {
 			go dm.WatchHostSecurityPolicies()
 		}
 
-		if dm.EnableExternalWorkloadPolicy {
-			go dm.WatchExternalWorkloadSecurityPolicies()
-		}
+		/*
+			if dm.EnableExternalWorkloadPolicy {
+				go dm.WatchExternalWorkloadSecurityPolicies()
+			}*/
 
 	} else {
 		kg.Print("dm.EnableExternalWorkloadPolicy true/false")

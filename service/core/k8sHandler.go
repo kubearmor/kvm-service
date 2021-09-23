@@ -293,7 +293,7 @@ func (kh *K8sHandler) WatchK8sExternalWorkloadSecurityPolicies() *http.Response 
 	}
 
 	if kl.IsInK8sCluster() {
-		URL := "https://" + kh.K8sHost + ":" + kh.K8sPort + "/apis/security.kubearmor.com/v1/kubearmorexternalworkloadpolicies?watch=true"
+		URL := "https://" + kh.K8sHost + ":" + kh.K8sPort + "/apis/security.kubearmor.com/v1/kubearmorexternalworkloads?watch=true"
 
 		req, err := http.NewRequest("GET", URL, nil)
 		if err != nil {
@@ -308,16 +308,14 @@ func (kh *K8sHandler) WatchK8sExternalWorkloadSecurityPolicies() *http.Response 
 			return nil
 		}
 
-		kg.Print("Configured external workload")
 		return resp
 	}
 
 	// kube-proxy (local)
-	URL := "http://" + kh.K8sHost + ":" + kh.K8sPort + "/apis/security.kubearmor.com/v1/kubearmorexternalworkloadpolicies?watch=true"
+	URL := "http://" + kh.K8sHost + ":" + kh.K8sPort + "/apis/security.kubearmor.com/v1/kubearmorexternalworkloads?watch=true"
 
 	// #nosec
 	if resp, err := http.Get(URL); err == nil {
-		kg.Print("Configured external workload")
 		return resp
 	}
 
