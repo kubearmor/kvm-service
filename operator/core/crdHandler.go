@@ -55,17 +55,16 @@ func (dm *KVMSOperator) UpdateIdentityLabelsMap(identity uint16, labels string) 
 	fmt.Println("Updating identity to labels map")
 	dm.MapIdentityToLabel[identity] = labels
 	dm.MapLabelToIdentity[labels] = append(dm.MapLabelToIdentity[labels], identity)
-
 }
 
 func (dm *KVMSOperator) GenerateExternalWorkloadIdentity(name string, labels map[string]string) uint16 {
-	label := dm.convertLabelsToStr(labels)
+	//label := dm.convertLabelsToStr(labels)
 	for {
 		identity := uint16(rand.Uint32())
 		if dm.MapIdentityToEWName[identity] == "" {
 			dm.MapIdentityToEWName[identity] = name
 			dm.MapEWNameToIdentity[name] = identity
-			dm.UpdateIdentityLabelsMap(identity, label)
+			//dm.UpdateIdentityLabelsMap(identity, label)
 			return identity
 		}
 	}
