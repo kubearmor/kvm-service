@@ -24,7 +24,7 @@ build-test:
 .PHONY: run
 run: build
 	cd $(CURDIR); sudo rm -f /tmp/kvmservice.log
-	cd $(CURDIR); sudo -E ./kvmservice #-logPath=/tmp/kvmservice.log
+	cd $(CURDIR); sudo -E ./kvmservice -port=32769 -ipAddress="1.1.1.1" #-logPath=/tmp/kvmservice.log
 
 .PHONY: run-per-pod
 run-per-pod: build

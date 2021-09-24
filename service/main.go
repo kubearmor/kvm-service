@@ -40,14 +40,14 @@ func main() {
 		enableEnforcerPerPodPtr := flag.Bool("enableEnforcerPerPod", false, "enabling the enforcer per pod")
 		//enableExternalWorkloadPolicyPtr := true
 	*/
-    enableHostPolicyPtr := flag.Bool("enableHostPolicy", true, "enabling host policies")
-    enableExternalWorkloadPolicyPtr := flag.Bool("enableExternalWorkloadPolicy", true, "enabling external workload policies")
+    portPtr := flag.Int("port", 0, "Cluster Port")
+    ipAddressPtr := flag.String("ipAddress", "", "Cluster Address")
 
 	flag.Parse()
 
 	// == //
 
-	core.KVMSDaemon(*enableHostPolicyPtr, *enableExternalWorkloadPolicyPtr)
+	core.KVMSDaemon(*portPtr, *ipAddressPtr)
 
 	// == //
 }

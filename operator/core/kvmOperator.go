@@ -4,12 +4,12 @@
 package core
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
-    "context"
 
 	etcd "github.com/kubearmor/KVMService/operator/etcd"
 	kg "github.com/kubearmor/KVMService/operator/log"
@@ -60,7 +60,7 @@ type KVMSOperator struct {
 }
 
 // NewKVMSOperatorDaemon Function
-func NewKVMSOperatorDaemon(port int, ipAddress string, enableExternalWorkloadPolicy bool) *KVMSOperator {
+func NewKVMSOperatorDaemon(port int, ipAddress string) *KVMSOperator {
 	dm := new(KVMSOperator)
 
 	dm.EtcdClient = etcd.NewEtcdClient()
@@ -68,7 +68,6 @@ func NewKVMSOperatorDaemon(port int, ipAddress string, enableExternalWorkloadPol
 	dm.ClusterIp = ipAddress
 	dm.Port = uint16(port)
 
-	dm.EnableExternalWorkloadPolicy = enableExternalWorkloadPolicy
 	dm.ExternalWorkloadSecurityPoliciesLock = new(sync.RWMutex)
 
 	dm.MapIdentityToLabel = make(map[uint16]string)
@@ -94,7 +93,7 @@ func (dm *KVMSOperator) DestroyKVMSOperator() {
 	kg.Print("Waiting for remaining routine terminations")
 
 	kg.Print("Deleting the external worklaods keys from etcd")
-    dm.EtcdClient.EtcdDelete(context.TODO(), "/externalworkloads/")
+	dm.EtcdClient.EtcdDelete(context.TODO(), "/externalworkloads/")
 
 	dm.WgOperatorDaemon.Wait()
 }
@@ -122,9 +121,9 @@ func GetOSSigChannel() chan os.Signal {
 // ========== //
 
 // KVMSService Function
-func KVMSOperatorDaemon(port int, ipAddress string, enableExternalWorkloadPolicyPtr bool) {
+func KVMSOperatorDaemon(port int, ipAddress string) {
 	// create a daemon
-	dm := NewKVMSOperatorDaemon(port, ipAddress, enableExternalWorkloadPolicyPtr)
+	dm := NewKVMSOperatorDaemon(port, ipAddress)
 
 	// wait for a while
 	time.Sleep(time.Second * 1)

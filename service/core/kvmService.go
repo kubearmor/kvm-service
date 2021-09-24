@@ -5,7 +5,7 @@ package core
 
 import (
 	"context"
-    "log"
+	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -20,7 +20,7 @@ import (
 
 // ClientConn is the wrapper for a grpc client conn
 type ClientConn struct {
-	conn *grpc.ClientConn
+	conn      *grpc.ClientConn
 	unhealthy bool
 }
 
@@ -44,13 +44,13 @@ type KVMS struct {
 	LogPath   string
 	LogFilter string
 
-    IdentityConnPool []ClientConn
+	IdentityConnPool []ClientConn
 
 	EnableHostPolicy             bool
 	EnableExternalWorkloadPolicy bool
 
-    MapEtcdEWIdentityLabels map[string]string
-    EtcdEWLabels []string
+	MapEtcdEWIdentityLabels map[string]string
+	EtcdEWLabels            []string
 
 	// Host Security policies
 	HostSecurityPolicies     []tp.HostSecurityPolicy
@@ -64,24 +64,30 @@ type KVMS struct {
 	MapLabelToIdentity              map[string][]uint16
 	MapExternalWorkloadConnIdentity map[uint16]ClientConn
 
+	port      uint16
+	ipAddress string
+
 	// WgDaemon Handler
 	WgDaemon sync.WaitGroup
 }
 
 // NewKVMSDaemon Function
-func NewKVMSDaemon(enableHostPolicy, enableExternalWorkloadPolicy bool) *KVMS {
+func NewKVMSDaemon(port int, ipAddress string) *KVMS {
 	dm := new(KVMS)
 
 	dm.EtcdClient = etcd.NewEtcdClient()
-    dm.MapEtcdEWIdentityLabels = make(map[string]string)
-    dm.EtcdEWLabels = make([]string, 0)
+	dm.MapEtcdEWIdentityLabels = make(map[string]string)
+	dm.EtcdEWLabels = make([]string, 0)
 
 	dm.gRPCPort = ""
 	dm.LogPath = ""
 	dm.LogFilter = ""
-    dm.IdentityConnPool = nil
+	dm.IdentityConnPool = nil
 
-    err := dm.EtcdClient.EtcdPut(context.TODO(), "/externalworkloads/34", "abc=yzx")
+	dm.port = uint16(port)
+	dm.ipAddress = ipAddress
+
+	err := dm.EtcdClient.EtcdPut(context.TODO(), "/externalworkloads/34", "abc=yzx")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -97,9 +103,6 @@ func NewKVMSDaemon(enableHostPolicy, enableExternalWorkloadPolicy bool) *KVMS {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	dm.EnableHostPolicy = enableHostPolicy
-	dm.EnableExternalWorkloadPolicy = enableExternalWorkloadPolicy
 
 	dm.HostSecurityPolicies = []tp.HostSecurityPolicy{}
 	dm.HostSecurityPoliciesLock = new(sync.RWMutex)
@@ -151,9 +154,9 @@ func GetOSSigChannel() chan os.Signal {
 // ========== //
 
 // KVMSService Function
-func KVMSDaemon(enableExternalWorkloadPolicyPtr, enableHostPolicyPtr bool) {
+func KVMSDaemon(portPtr int, ipAddressPtr string) {
 	// create a daemon
-	dm := NewKVMSDaemon(enableExternalWorkloadPolicyPtr, enableHostPolicyPtr)
+	dm := NewKVMSDaemon(portPtr, ipAddressPtr)
 
 	// wait for a while
 	time.Sleep(time.Second * 1)
@@ -161,19 +164,10 @@ func KVMSDaemon(enableExternalWorkloadPolicyPtr, enableHostPolicyPtr bool) {
 	// == //
 
 	if K8s.InitK8sClient() {
-
-		if dm.EnableHostPolicy {
-			// watch host security policies
-			go dm.WatchHostSecurityPolicies()
-		}
-
-		/*
-			if dm.EnableExternalWorkloadPolicy {
-				go dm.WatchExternalWorkloadSecurityPolicies()
-			}*/
-
+		// watch host security policies
+		go dm.WatchHostSecurityPolicies()
 	} else {
-		kg.Print("dm.EnableExternalWorkloadPolicy true/false")
+		kg.Print("K8S client initialization got failed")
 	}
 
 	// wait for a while
