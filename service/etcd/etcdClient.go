@@ -64,7 +64,7 @@ func NewEtcdClient() *EtcdClient {
 }
 
 func (cli *EtcdClient) EtcdPutWithTTL(ctx context.Context, key, value string) error {
-    _, err := cli.etcdClient.Put(context.TODO(), key, value, clientv3.WithLease(cli.leaseResponse.ID))
+	_, err := cli.etcdClient.Put(context.TODO(), key, value, clientv3.WithLease(cli.leaseResponse.ID))
 	if err != nil {
 		log.Fatal(err)
 		return err
@@ -104,12 +104,15 @@ func (cli *EtcdClient) EtcdGet(ctx context.Context, key string) (map[string]stri
 	return keyValuePair, nil
 }
 
-func (cli *EtcdClient) keepAliveEtcdConnection() {
-	fmt.Println("Keep alive etcd connection")
-	// the key 'foo' will be kept forever
-	_, kaerr := cli.etcdClient.KeepAlive(context.TODO(), cli.leaseResponse.ID)
-	if kaerr != nil {
-		log.Fatal(kaerr)
+func (cli *EtcdClient) KeepAliveEtcdConnection() {
+	for {
+		fmt.Println("Keep alive etcd connection")
+		// the key 'foo' will be kept forever
+		_, kaerr := cli.etcdClient.KeepAlive(context.TODO(), cli.leaseResponse.ID)
+		if kaerr != nil {
+			log.Fatal(kaerr)
+		}
+		time.Sleep(time.Second * 3)
 	}
 }
 

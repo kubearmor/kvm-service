@@ -4,7 +4,7 @@
 package core
 
 import (
-	"context"
+	//"context"
 	"log"
 	"os"
 	"os/signal"
@@ -39,15 +39,13 @@ func init() {
 // KVMS Structure
 type KVMS struct {
 	EtcdClient *etcd.EtcdClient
+
 	// gRPC
 	gRPCPort  string
 	LogPath   string
 	LogFilter string
 
 	IdentityConnPool []ClientConn
-
-	EnableHostPolicy             bool
-	EnableExternalWorkloadPolicy bool
 
 	MapEtcdEWIdentityLabels map[string]string
 	EtcdEWLabels            []string
@@ -73,6 +71,7 @@ type KVMS struct {
 
 // NewKVMSDaemon Function
 func NewKVMSDaemon(port int, ipAddress string) *KVMS {
+    log.Print("Initializing all the KVMS daemon attributes")
 	dm := new(KVMS)
 
 	dm.EtcdClient = etcd.NewEtcdClient()
@@ -86,23 +85,6 @@ func NewKVMSDaemon(port int, ipAddress string) *KVMS {
 
 	dm.port = uint16(port)
 	dm.ipAddress = ipAddress
-
-	err := dm.EtcdClient.EtcdPut(context.TODO(), "/externalworkloads/34", "abc=yzx")
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = dm.EtcdClient.EtcdPut(context.TODO(), "/externalworkloads/12", "abc=yzx")
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = dm.EtcdClient.EtcdPut(context.TODO(), "/externalworkloads/foo2", "1235")
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = dm.EtcdClient.EtcdPut(context.TODO(), "/externalworkloads/foo3", "1234")
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	dm.HostSecurityPolicies = []tp.HostSecurityPolicy{}
 	dm.HostSecurityPoliciesLock = new(sync.RWMutex)
@@ -122,9 +104,6 @@ func (dm *KVMS) DestroyKVMS() {
 
 	// wait for a while
 	time.Sleep(time.Second * 1)
-
-	// close log feeder
-	kg.Print("Stopped the log feeder")
 
 	// wait for other routines
 	kg.Print("Waiting for remaining routine terminations")
@@ -165,7 +144,14 @@ func KVMSDaemon(portPtr int, ipAddressPtr string) {
 
 	if K8s.InitK8sClient() {
 		// watch host security policies
+        kg.Print("K8S Client is successfully initialize")
+
+        kg.Print("Watcher triggered for the host policies")
 		go dm.WatchHostSecurityPolicies()
+
+        kg.Print("Triggered the keepalive ETCD client")
+        go dm.EtcdClient.KeepAliveEtcdConnection()
+
 	} else {
 		kg.Print("K8S client initialization got failed")
 	}

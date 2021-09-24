@@ -16,9 +16,18 @@ import (
 	"time"
 
 	kl "github.com/kubearmor/KVMService/service/common"
-	//kg "github.com/kubearmor/KVMService/service/log"
+	kg "github.com/kubearmor/KVMService/service/log"
 	tp "github.com/kubearmor/KVMService/service/types"
 )
+
+func Find(slice []uint16, val uint16) (int, bool) {
+	for i, item := range slice {
+		if item == val {
+			return i, true
+		}
+	}
+	return -1, false
+}
 
 func (dm *KVMS) GetAllEtcdEWLabels() {
 	fmt.Println("Getting the External workload labels from ETCD")
@@ -36,7 +45,10 @@ func (dm *KVMS) GetAllEtcdEWLabels() {
 		dm.EtcdEWLabels = append(dm.EtcdEWLabels, value)
 
 		idNum, _ := strconv.ParseUint(identity, 0, 10)
-		dm.MapLabelToIdentity[value] = append(dm.MapLabelToIdentity[value], uint16(idNum))
+		_, found := Find(dm.MapLabelToIdentity[value], uint16(idNum))
+		if !found {
+			dm.MapLabelToIdentity[value] = append(dm.MapLabelToIdentity[value], uint16(idNum))
+		}
 	}
 
 	fmt.Println("MDEBUG:", dm.EtcdEWLabels)
@@ -106,6 +118,7 @@ func (dm *KVMS) WatchHostSecurityPolicies() {
 				dm.HostSecurityPoliciesLock.Lock()
 
 				// create a host security policy
+				kg.Print("Host policy got detected")
 
 				secPolicy := tp.HostSecurityPolicy{}
 
@@ -133,6 +146,7 @@ func (dm *KVMS) WatchHostSecurityPolicies() {
 				//dm.Logger.Printf("Detected a Host Security Policy (%s/%s)", strings.ToLower(event.Type), secPolicy.Metadata["policyName"])
 
 				// apply security policies to a host
+				log.Print("Host Policy Labels:", secPolicy.Spec.NodeSelector.Identities)
 				dm.UpdateHostSecurityPolicies(event, secPolicy.Spec.NodeSelector.Identities)
 			}
 		}
