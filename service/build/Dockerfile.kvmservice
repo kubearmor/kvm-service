@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright 2021 Authors of KubeArmor
+# Copyright 2021 Authors of KVMService
 
 ### Builder
 
@@ -29,6 +29,6 @@ RUN apk update
 RUN apk add bash curl procps bcc@community bcc-dev@community
 RUN apk add apparmor@community apparmor-utils@community kubectl@testing
 
-COPY --from=builder /usr/src/KVMService/KVMService/kvmservice /KubeArmor/kvmservice
+COPY --from=builder /usr/src/KVMService/KVMService/kvmservice /KVMService/kvmservice
 
-ENTRYPOINT ["/KubeArmor/kvmservice"]
+ENTRYPOINT ["/KVMService/kvmservice"]

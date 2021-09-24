@@ -1,4 +1,4 @@
 # KubeArmor
 
-## Introduction to KubeArmor KVMS Service
+## Introduction to KubeArmor KVMService
 
