@@ -1,0 +1,15 @@
+apiVersion: security.kubearmor.com/v1
+kind: KubeArmorHostPolicy
+metadata:
+  name: ew-khp-01
+spec:
+  nodeSelector:
+    matchLabels:
+      abc: yz
+        #kubearmorexternalworkloads.security.kubearmor.com: external-workload-01
+  severity: 5
+  file:
+    matchPaths:
+    - path: /etc/passwd # cat /etc/passwd
+  action:
+    Audit
