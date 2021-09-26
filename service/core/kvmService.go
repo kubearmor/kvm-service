@@ -8,12 +8,14 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
 
 	etcd "github.com/kubearmor/KVMService/service/etcd"
 	kg "github.com/kubearmor/KVMService/service/log"
+	ks "github.com/kubearmor/KVMService/service/server"
 	tp "github.com/kubearmor/KVMService/service/types"
 	"google.golang.org/grpc"
 )
@@ -149,8 +151,11 @@ func KVMSDaemon(portPtr int, ipAddressPtr string) {
         kg.Print("Watcher triggered for the host policies")
 		go dm.WatchHostSecurityPolicies()
 
-        kg.Print("Triggered the keepalive ETCD client")
-        go dm.EtcdClient.KeepAliveEtcdConnection()
+		kg.Print("Triggered the keepalive ETCD client")
+		go dm.EtcdClient.KeepAliveEtcdConnection()
+
+		kg.Print("Starting gRPC server")
+		go ks.InitServer(strconv.Itoa(portPtr))
 
 	} else {
 		kg.Print("K8S client initialization got failed")
