@@ -76,7 +76,7 @@ type KVMS struct {
 
 // NewKVMSDaemon Function
 func NewKVMSDaemon(port int, ipAddress string) *KVMS {
-	log.Print("Initializing all the KVMS daemon attributes")
+	kg.Print("Initializing all the KVMS daemon attributes")
 	dm := new(KVMS)
 
 	dm.EtcdClient = etcd.NewEtcdClient()
@@ -99,7 +99,6 @@ func NewKVMSDaemon(port int, ipAddress string) *KVMS {
 
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 	dm.PodIpAddress = localAddr.IP.String()
-	log.Print("Ip Address:", dm.PodIpAddress)
 	dm.Server = ks.NewServerInit(dm.PodIpAddress, dm.ClusteripAddress, strconv.FormatUint(uint64(dm.ClusterPort), 10), dm.EtcdClient)
 
 	dm.HostSecurityPolicies = []tp.HostSecurityPolicy{}

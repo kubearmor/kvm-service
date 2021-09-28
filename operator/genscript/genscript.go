@@ -6,6 +6,7 @@ package genscript
 import (
 	//"flag"
 	//"fmt"
+	kg "github.com/kubearmor/KVMService/operator/log"
 	"log"
 	"os"
 	"strconv"
@@ -21,6 +22,8 @@ func addContent(content string) {
 }
 
 func GenerateEWInstallationScript(port uint16, ipAddress, externalWorkload string, identity uint16) {
+	kg.Printf("Generating the installation script with following args: =>")
+	kg.Printf("ClusterIP:%s ClusterPort:%d ewName:%s identity:%d", ipAddress, port, externalWorkload, identity)
 	/*
 		externalworkloadPtr := flag.String("external-workload", "", "External workload name/id")
 
@@ -39,12 +42,14 @@ func GenerateEWInstallationScript(port uint16, ipAddress, externalWorkload strin
 	// Creating an empty file Using Create() function
 	ewFile, err = os.Create(ewFileName)
 	if err != nil {
+		kg.Printf("File creation failed file:%s", ewFileName)
 		log.Fatal(err)
 	}
 	defer ewFile.Close()
 
 	err = os.Chmod(ewFileName, 0777)
 	if err != nil {
+		kg.Printf("File permissions failed file:%s", ewFileName)
 		log.Fatal(err)
 	}
 
@@ -96,5 +101,7 @@ func GenerateEWInstallationScript(port uint16, ipAddress, externalWorkload strin
 	addContent("echo \"Launching kubearmor agent...\"")
 	addContent("sudo docker run --name kubearmor $DOCKER_OPTS $KUBEARMOR_IMAGE kubearmor $KUBEARMOR_OPTS")
 	addContent("")
+
+	kg.Printf("File is successfully generated => %s", ewFileName)
 
 }

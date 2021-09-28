@@ -79,6 +79,7 @@ func NewKVMSOperatorDaemon(port int, ipAddress string) *KVMSOperator {
 	dm.MapExternalWorkloadConnIdentity = make(map[uint16]ClientConn)
 
 	dm.WgOperatorDaemon = sync.WaitGroup{}
+    kg.Printf("Successfully initialized the KVMSOperator with args => (clusterIp:%s clusterPort:%d", dm.ClusterIp, dm.Port)
 
 	return dm
 }
@@ -131,6 +132,7 @@ func KVMSOperatorDaemon(port int, ipAddress string) {
 	// == //
 
 	if K8s.InitK8sClient() {
+        kg.Print("Started the external workload CRD watcher")
 		go dm.WatchExternalWorkloadSecurityPolicies()
 
 	} else {

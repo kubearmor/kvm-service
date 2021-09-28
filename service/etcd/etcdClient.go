@@ -8,13 +8,12 @@ package etcdClient
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"time"
 
-	tp "github.com/kubearmor/KVMService/service/types"
 	kg "github.com/kubearmor/KVMService/service/log"
+	tp "github.com/kubearmor/KVMService/service/types"
 	"go.etcd.io/etcd/client/pkg/v3/transport"
 	"go.etcd.io/etcd/client/v3"
 )
@@ -61,12 +60,12 @@ func NewEtcdClient() *EtcdClient {
 		log.Fatal(err)
 	}
 
-    kg.Print("ETCD: etcd client is successfully initialized!!!\n")
+	kg.Print("ETCD: etcd client is successfully initialized!!!\n")
 	return &EtcdClient{etcdClient: cli, leaseResponse: resp}
 }
 
 func (cli *EtcdClient) EtcdPutWithTTL(ctx context.Context, key, value string) error {
-    log.Printf("ETCD: putting values with TTL key:%v value:%v\n", key, value)
+	kg.Printf("ETCD: putting values with TTL key:%v value:%v\n", key, value)
 	_, err := cli.etcdClient.Put(context.TODO(), key, value, clientv3.WithLease(cli.leaseResponse.ID))
 	if err != nil {
 		log.Fatal(err)
@@ -77,7 +76,7 @@ func (cli *EtcdClient) EtcdPutWithTTL(ctx context.Context, key, value string) er
 }
 
 func (cli *EtcdClient) EtcdPut(ctx context.Context, key, value string) error {
-    log.Printf("ETCD: Putting values key:%v value:%v\n", key, value)
+	kg.Printf("ETCD: Putting values key:%v value:%v\n", key, value)
 	_, err := cli.etcdClient.Put(ctx, key, value)
 	if err != nil {
 		log.Fatal(err)
@@ -88,7 +87,7 @@ func (cli *EtcdClient) EtcdPut(ctx context.Context, key, value string) error {
 }
 
 func (cli *EtcdClient) EtcdGet(ctx context.Context, key string) (map[string]string, error) {
-    log.Printf("ETCD: Getting values key:%v\n", key)
+	kg.Printf("ETCD: Getting values key:%v\n", key)
 	//var keyValuePair map[string]string
 	keyValuePair := make(map[string]string)
 	resp, err := cli.etcdClient.Get(ctx, key, clientv3.WithPrefix())
@@ -97,14 +96,13 @@ func (cli *EtcdClient) EtcdGet(ctx context.Context, key string) (map[string]stri
 		return nil, err
 	}
 	if len(resp.Kvs) == 0 {
-		err := errors.New("err: no much data")
-		log.Fatal(err)
-		return nil, err
+		kg.Print("ETCD: err: No data")
+		return nil, nil
 	}
 
 	for _, ev := range resp.Kvs {
 		keyValuePair[string(ev.Key)] = string(ev.Value)
-        log.Printf("ETCD: Key:%v Value:%v", ev.Key, ev.Value)
+		log.Printf("ETCD: Key:%s Value:%s", string(ev.Key), string(ev.Value))
 	}
 
 	return keyValuePair, nil
@@ -112,7 +110,7 @@ func (cli *EtcdClient) EtcdGet(ctx context.Context, key string) (map[string]stri
 
 func (cli *EtcdClient) KeepAliveEtcdConnection() {
 	for {
-        kg.Print("ETCD: Keep alive etcd connection")
+		kg.Print("ETCD: Keep alive etcd connection")
 		// the key 'foo' will be kept forever
 		_, kaerr := cli.etcdClient.KeepAlive(context.TODO(), cli.leaseResponse.ID)
 		if kaerr != nil {

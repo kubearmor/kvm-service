@@ -31,7 +31,7 @@ func Find(slice []uint16, val uint16) (int, bool) {
 }
 
 func (dm *KVMS) GetAllEtcdEWLabels() {
-	fmt.Println("Getting the External workload labels from ETCD")
+	kg.Print("Getting the External workload labels from ETCD")
 
 	etcdLabels, err := dm.EtcdClient.EtcdGet(context.TODO(), "/externalworkloads")
 	if err != nil {
@@ -62,7 +62,6 @@ func (dm *KVMS) GetAllEtcdEWLabels() {
 // ================================= //
 func (dm *KVMS) PassOverToKVMSAgent(event tp.K8sKubeArmorHostPolicyEvent, identities []uint16) {
 	eventWithIdentity := tp.K8sKubeArmorHostPolicyEventWithIdentity{}
-	fmt.Println(event, identities)
 
 	eventWithIdentity.Event = event
 	eventWithIdentity.CloseConnection = false

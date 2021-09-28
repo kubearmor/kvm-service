@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"strings"
 
 	etcd "github.com/kubearmor/KVMService/service/etcd"
 	kg "github.com/kubearmor/KVMService/service/log"
@@ -32,7 +33,7 @@ type Server struct {
 }
 
 func NewServerInit(ipAddress, ClusterIpAddress, portVal string, Etcd *etcd.EtcdClient) *Server {
-	kg.Printf("Initiliazing the KVMServer => podip:%v clusterIP:%v clusterPort:%v\n", ipAddress, ClusterIpAddress, portVal)
+	kg.Printf("Initiliazing the KVMServer => podip:%v clusterIP:%v clusterPort:%v", ipAddress, ClusterIpAddress, portVal)
 	podIp = ipAddress
 	Clusterport = portVal
 	EtcdClient = Etcd
@@ -61,7 +62,7 @@ func (s *Server) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 	var loop bool
 	loop = true
 
-	kg.Print("Started Policy Streamer\n")
+	kg.Print("Started Policy Streamer")
 	PolicyChan = make(chan tp.K8sKubeArmorHostPolicyEventWithIdentity)
 
 	go func() {
@@ -71,7 +72,7 @@ func (s *Server) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 				closeEvent := tp.K8sKubeArmorHostPolicyEventWithIdentity{}
 				closeEvent.Identity = GetIdentityFromContext(stream.Context())
 				closeEvent.CloseConnection = true
-				log.Printf("Done context received for identity %d\n", closeEvent.Identity)
+				kg.Printf("Done context received for identity %d", closeEvent.Identity)
 				loop = false
 				PolicyChan <- closeEvent
 				// Client Connection interrupted
@@ -88,19 +89,22 @@ func (s *Server) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 				if !event.CloseConnection {
 					policyBytes, err := json.Marshal(&event.Event)
 					if err != nil {
-						log.Print("Failed to marshall data")
+						kg.Print("Failed to marshall data")
 					} else {
 						policy.PolicyData = policyBytes
 						err := stream.Send(&policy)
 						if err != nil {
-							log.Print("Failed to send")
+							kg.Print("Failed to send")
 						}
 						response, err := stream.Recv()
-						log.Printf("Policy Enforcement status in host : %d", response.Status)
+						if err != nil {
+							kg.Print("Failed to recv")
+						}
+						kg.Printf("Policy Enforcement status in host :%d", response.Status)
 					}
 				} else {
-					log.Printf("Context is %d\n", GetIdentityFromContext(stream.Context()))
-					log.Print("Closing the connection")
+					kg.Printf("Context is %d", GetIdentityFromContext(stream.Context()))
+					kg.Print("Closing the connection")
 					close(PolicyChan)
 					return nil
 				}
@@ -118,11 +122,24 @@ func IsIdentityServing(identity string) int {
 	}
 
 	if len(kvPair) > 0 {
-		log.Print("This Identity is already served by this ip", kvPair["/ew-identities/"+identity])
+		kg.Printf("This Identity is already served by this podIP:%s", kvPair["/ew-identities/"+identity])
 		return 0
 	}
 
-	return 1
+	etcdLabels, err := EtcdClient.EtcdGet(context.Background(), "/externalworkloads")
+	if err != nil {
+		log.Fatal(err)
+	}
+	for key, value := range etcdLabels {
+		s := strings.Split(key, "/")
+		id := s[len(s)-1]
+		if id == identity {
+            kg.Printf("Validated the recieved identity from the etcd DB identity:%s label:%s", identity, value)
+			return 1
+		}
+	}
+    kg.Printf("Recieved the invalid identity:%s", identity)
+	return 0
 }
 
 func (s *Server) RegisterAgentIdentity(ctx context.Context, in *pb.AgentIdentity) (*pb.Status, error) {
@@ -130,13 +147,13 @@ func (s *Server) RegisterAgentIdentity(ctx context.Context, in *pb.AgentIdentity
 	var identity uint16
 	// TODO : Which function for identity register with etcd
 	if IsIdentityServing(in.Identity) == 0 {
-		log.Print("Connection refused due to already busy identity")
+		kg.Print("Connection refused due to already busy identity")
 		return &pb.Status{Status: -1}, nil
 	}
 
 	value, _ := strconv.Atoi(in.Identity)
 	identity = uint16(value)
-	log.Printf("New connection recieved RegisterAgentIdentity: %v podIp: %v", identity, podIp)
+	kg.Printf("New connection recieved RegisterAgentIdentity: %v podIp: %v", identity, podIp)
 
 	EtcdClient.EtcdPutWithTTL(context.Background(), "/ew-identities/"+in.Identity, podIp)
 

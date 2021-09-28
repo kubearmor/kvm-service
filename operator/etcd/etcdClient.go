@@ -8,12 +8,12 @@ package etcdClient
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"time"
 
 	tp "github.com/kubearmor/KVMService/operator/types"
+	kg "github.com/kubearmor/KVMService/operator/log"
 	"go.etcd.io/etcd/client/pkg/v3/transport"
 	"go.etcd.io/etcd/client/v3"
 )
@@ -60,10 +60,12 @@ func NewEtcdClient() *EtcdClient {
 		log.Fatal(err)
 	}
 
+    kg.Print("Initialized the ETCD client!")
 	return &EtcdClient{etcdClient: cli, leaseResponse: resp}
 }
 
 func (cli *EtcdClient) EtcdPutWithTTL(ctx context.Context, key, value string) error {
+    kg.Printf("ETCD: putting with TTL key:%v value:%v", key, value)
     _, err := cli.etcdClient.Put(context.TODO(), key, value, clientv3.WithLease(cli.leaseResponse.ID))
 	if err != nil {
 		log.Fatal(err)
@@ -74,6 +76,7 @@ func (cli *EtcdClient) EtcdPutWithTTL(ctx context.Context, key, value string) er
 }
 
 func (cli *EtcdClient) EtcdPut(ctx context.Context, key, value string) error {
+    kg.Printf("ETCD: putting key:%v value:%v", key, value)
 	_, err := cli.etcdClient.Put(ctx, key, value)
 	if err != nil {
 		log.Fatal(err)
@@ -84,7 +87,7 @@ func (cli *EtcdClient) EtcdPut(ctx context.Context, key, value string) error {
 }
 
 func (cli *EtcdClient) EtcdGet(ctx context.Context, key string) (map[string]string, error) {
-	//var keyValuePair map[string]string
+    kg.Printf("ETCD: getting key:%v", key)
 	keyValuePair := make(map[string]string)
 	resp, err := cli.etcdClient.Get(ctx, key, clientv3.WithPrefix())
 	if err != nil {
@@ -92,19 +95,20 @@ func (cli *EtcdClient) EtcdGet(ctx context.Context, key string) (map[string]stri
 		return nil, err
 	}
 	if len(resp.Kvs) == 0 {
-		err := errors.New("err: no much data")
-		log.Fatal(err)
-		return nil, err
+        kg.Print("ETCD: No data")
+		return nil, nil
 	}
 
 	for _, ev := range resp.Kvs {
 		keyValuePair[string(ev.Key)] = string(ev.Value)
+        kg.Printf("ETCD: getting key:%v value:%v", ev.Key, ev.Value)
 	}
 
 	return keyValuePair, nil
 }
 
 func (cli *EtcdClient) EtcdDelete(ctx context.Context, key string) error {
+    kg.Printf("ETCD: Deleting key:%v", key)
 	_, err := cli.etcdClient.Delete(ctx, key, clientv3.WithPrefix())
 	if err != nil {
 		log.Fatal(err)
@@ -115,7 +119,7 @@ func (cli *EtcdClient) EtcdDelete(ctx context.Context, key string) error {
 }
 
 func (cli *EtcdClient) keepAliveEtcdConnection() {
-	fmt.Println("Keep alive etcd connection")
+    kg.Print("ETCD: Keep alive etcd connection")
 	// the key 'foo' will be kept forever
 	_, kaerr := cli.etcdClient.KeepAlive(context.TODO(), cli.leaseResponse.ID)
 	if kaerr != nil {
@@ -179,7 +183,7 @@ func tempNewEtcdClient() {
 	}
 
 	for _, hp := range ew_khps {
-		fmt.Printf("+%v\n", hp)
+		fmt.Printf("+%v", hp)
 	}
 
 	// minimum lease TTL is 5-second

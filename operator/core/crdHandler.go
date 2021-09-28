@@ -47,12 +47,13 @@ func (dm *KVMSOperator) convertLabelsToStr(labels map[string]string) string {
 }
 
 func (dm *KVMSOperator) updateEtcdIdentityLabelsMap(identity uint16, labels map[string]string) {
-	dm.EtcdClient.EtcdPut(context.TODO(), "/externalworkloads/" + strconv.FormatUint(uint64(identity), 10),
+	kg.Printf("Updating the CRD map of identity to label")
+	dm.EtcdClient.EtcdPut(context.TODO(), "/externalworkloads/"+strconv.FormatUint(uint64(identity), 10),
 		dm.convertLabelsToStr(labels))
 }
 
 func (dm *KVMSOperator) UpdateIdentityLabelsMap(identity uint16, labels string) {
-	fmt.Println("Updating identity to labels map")
+	kg.Printf("Updating identity to labels map identity:%d label:%s", identity, labels)
 	dm.MapIdentityToLabel[identity] = labels
 	dm.MapLabelToIdentity[labels] = append(dm.MapLabelToIdentity[labels], identity)
 }
@@ -64,6 +65,8 @@ func (dm *KVMSOperator) GenerateExternalWorkloadIdentity(name string, labels map
 		if dm.MapIdentityToEWName[identity] == "" {
 			dm.MapIdentityToEWName[identity] = name
 			dm.MapEWNameToIdentity[name] = identity
+			kg.Printf("Mappings identity to ewName=> %v", dm.MapIdentityToEWName)
+			kg.Printf("Mappings ewName to identity => %v", dm.MapEWNameToIdentity)
 			//dm.UpdateIdentityLabelsMap(identity, label)
 			return identity
 		}
@@ -106,24 +109,18 @@ func (dm *KVMSOperator) WatchExternalWorkloadSecurityPolicies() {
 			for {
 				event := tp.K8sKubeArmorExternalWorkloadPolicyEvent{}
 				if err := decoder.Decode(&event); err == io.EOF {
-					kg.Print("No CRDS")
 					break
 				} else if err != nil {
-					kg.Print("Err: no CRDs")
 					break
 				}
 
 				if event.Object.Status.Status != "" && event.Object.Status.Status != "OK" {
 					continue
 				}
-				kg.Print("Recieved the CRD")
-
 				dm.ExternalWorkloadSecurityPoliciesLock.Lock()
 
-				// create a security policy
-
 				secPolicy := tp.ExternalWorkloadSecurityPolicy{}
-				fmt.Println("External workload policy configured", secPolicy)
+				kg.Print("Recieved external workload policy request!!!")
 
 				secPolicy.Metadata.NodeSelector.MatchLabels = event.Object.Metadata.Labels
 				secPolicy.Metadata.Name = event.Object.Metadata.Name
@@ -131,17 +128,19 @@ func (dm *KVMSOperator) WatchExternalWorkloadSecurityPolicies() {
 				// update a security policy into the policy list
 
 				if event.Type == "ADDED" {
+					kg.Printf("New External Workload CRD is configured! => %s", secPolicy.Metadata.Name)
 					if !kl.ContainsElement(dm.ExternalWorkloadSecurityPolicies, secPolicy) {
 						dm.ExternalWorkloadSecurityPolicies = append(dm.ExternalWorkloadSecurityPolicies, secPolicy)
 					}
 					identity := dm.GenerateExternalWorkloadIdentity(secPolicy.Metadata.Name, secPolicy.Metadata.NodeSelector.MatchLabels)
-					log.Print("Generated the identity for this CRD:", secPolicy.Metadata.Name, identity)
+					kg.Printf("Generated the identity(%s) for this CRD:%d", secPolicy.Metadata.Name, identity)
 					gs.GenerateEWInstallationScript(dm.Port, dm.ClusterIp, secPolicy.Metadata.Name, identity)
 					dm.updateEtcdIdentityLabelsMap(identity, secPolicy.Metadata.NodeSelector.MatchLabels)
 
 					// TODO: Handle this map of identity to grpc connection seperate context
 					//dm.MapExternalWorkloadConnIdentity[identity] = conn
 				} else if event.Type == "MODIFIED" {
+					kg.Printf("External Workload CRD is Modified! => %s", secPolicy.Metadata.Name)
 					for idx, policy := range dm.ExternalWorkloadSecurityPolicies {
 						if policy.Metadata.Name == secPolicy.Metadata.Name {
 							dm.ExternalWorkloadSecurityPolicies[idx] = secPolicy
@@ -151,6 +150,7 @@ func (dm *KVMSOperator) WatchExternalWorkloadSecurityPolicies() {
 						}
 					}
 				} else if event.Type == "DELETED" {
+					kg.Printf("External Workload CRD is Deleted! => %s", secPolicy.Metadata.Name)
 					for idx, policy := range dm.ExternalWorkloadSecurityPolicies {
 						if reflect.DeepEqual(secPolicy, policy) {
 							dm.ExternalWorkloadSecurityPolicies = append(dm.ExternalWorkloadSecurityPolicies[:idx], dm.ExternalWorkloadSecurityPolicies[idx+1:]...)
