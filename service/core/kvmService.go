@@ -6,14 +6,17 @@ package core
 import (
 	//"context"
 	"log"
+	"net"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
 
 	etcd "github.com/kubearmor/KVMService/service/etcd"
 	kg "github.com/kubearmor/KVMService/service/log"
+	ks "github.com/kubearmor/KVMService/service/server"
 	tp "github.com/kubearmor/KVMService/service/types"
 	"google.golang.org/grpc"
 )
@@ -39,6 +42,7 @@ func init() {
 // KVMS Structure
 type KVMS struct {
 	EtcdClient *etcd.EtcdClient
+	Server     *ks.Server
 
 	// gRPC
 	gRPCPort  string
@@ -62,8 +66,9 @@ type KVMS struct {
 	MapLabelToIdentity              map[string][]uint16
 	MapExternalWorkloadConnIdentity map[uint16]ClientConn
 
-	port      uint16
-	ipAddress string
+	ClusterPort      uint16
+	ClusteripAddress string
+	PodIpAddress     string
 
 	// WgDaemon Handler
 	WgDaemon sync.WaitGroup
@@ -71,10 +76,11 @@ type KVMS struct {
 
 // NewKVMSDaemon Function
 func NewKVMSDaemon(port int, ipAddress string) *KVMS {
-    log.Print("Initializing all the KVMS daemon attributes")
+	log.Print("Initializing all the KVMS daemon attributes")
 	dm := new(KVMS)
 
 	dm.EtcdClient = etcd.NewEtcdClient()
+
 	dm.MapEtcdEWIdentityLabels = make(map[string]string)
 	dm.EtcdEWLabels = make([]string, 0)
 
@@ -83,8 +89,18 @@ func NewKVMSDaemon(port int, ipAddress string) *KVMS {
 	dm.LogFilter = ""
 	dm.IdentityConnPool = nil
 
-	dm.port = uint16(port)
-	dm.ipAddress = ipAddress
+	dm.ClusterPort = uint16(port)
+	dm.ClusteripAddress = ipAddress
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	dm.PodIpAddress = localAddr.IP.String()
+	log.Print("Ip Address:", dm.PodIpAddress)
+	dm.Server = ks.NewServerInit(dm.PodIpAddress, dm.ClusteripAddress, strconv.FormatUint(uint64(dm.ClusterPort), 10), dm.EtcdClient)
 
 	dm.HostSecurityPolicies = []tp.HostSecurityPolicy{}
 	dm.HostSecurityPoliciesLock = new(sync.RWMutex)
@@ -95,6 +111,7 @@ func NewKVMSDaemon(port int, ipAddress string) *KVMS {
 	dm.MapExternalWorkloadConnIdentity = make(map[uint16]ClientConn)
 
 	dm.WgDaemon = sync.WaitGroup{}
+	kg.Print("KVMService attributes got initialized\n")
 
 	return dm
 }
@@ -144,13 +161,16 @@ func KVMSDaemon(portPtr int, ipAddressPtr string) {
 
 	if K8s.InitK8sClient() {
 		// watch host security policies
-        kg.Print("K8S Client is successfully initialize")
+		kg.Print("K8S Client is successfully initialize")
 
-        kg.Print("Watcher triggered for the host policies")
+		kg.Print("Watcher triggered for the host policies")
 		go dm.WatchHostSecurityPolicies()
 
-        kg.Print("Triggered the keepalive ETCD client")
-        go dm.EtcdClient.KeepAliveEtcdConnection()
+		kg.Print("Triggered the keepalive ETCD client")
+		go dm.EtcdClient.KeepAliveEtcdConnection()
+
+		kg.Print("Starting gRPC server")
+		go dm.Server.InitServer()
 
 	} else {
 		kg.Print("K8S client initialization got failed")

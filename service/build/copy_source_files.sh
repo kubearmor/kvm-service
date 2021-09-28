@@ -30,6 +30,8 @@ cp -r $SERVICE_PATH/core/ $ARMOR_HOME/build/KVMService/
 cp -r $SERVICE_PATH/log/ $ARMOR_HOME/build/KVMService/
 cp -r $SERVICE_PATH/types/ $ARMOR_HOME/build/KVMService/
 cp -r $SERVICE_PATH/etcd/ $ARMOR_HOME/build/KVMService/
+cp -r $SERVICE_PATH/server/ $ARMOR_HOME/build/KVMService/
+cp -r $SERVICE_PATH/protobuf/ $ARMOR_HOME/build/KVMService/
 cp $SERVICE_PATH/go.mod $ARMOR_HOME/build/KVMService/
 cp $SERVICE_PATH/main.go $ARMOR_HOME/build/KVMService/
 

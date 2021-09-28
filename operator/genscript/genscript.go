@@ -8,7 +8,7 @@ import (
 	//"fmt"
 	"log"
 	"os"
-    "strconv"
+	"strconv"
 )
 
 var ewFile *os.File
@@ -33,7 +33,7 @@ func GenerateEWInstallationScript(port uint16, ipAddress, externalWorkload strin
 		ewFileName := "ew-" + *externalworkloadPtr + ".sh"
 	*/
 
-	ewFileName := "ew-" + externalWorkload + ".sh"
+	ewFileName := "/mnt/gen-script/" + "ew-" + externalWorkload + ".sh"
 
 	var err error
 	// Creating an empty file Using Create() function
@@ -54,26 +54,28 @@ func GenerateEWInstallationScript(port uint16, ipAddress, externalWorkload strin
 	addContent("shopt -s extglob")
 	addContent("")
 
-    contentStr := "CLUSTER_PORT=" + strconv.FormatUint(uint64(identity), 10)
+	contentStr := "CLUSTER_PORT=" + strconv.FormatUint(uint64(port), 10)
 	addContent(contentStr)
-    contentStr = "CLUSTER_IP=" +  ipAddress
+	contentStr = "CLUSTER_IP=" + ipAddress
 	addContent(contentStr)
 	addContent("")
 
 	addContent("if [[ $(which docker) && $(docker --version) ]]; then")
 	addContent("    echo \"Docker is installed!!!\"")
 	addContent("else")
-    addContent("  echo \"Failed: Docker is not installed!!!\"")
+	addContent("  echo \"Failed: Docker is not installed!!!\"")
 	addContent("  exit -1")
 	addContent("fi")
 	addContent("")
 
-	contentStr = "export WORKLOAD_IDENTITY=" + strconv.FormatUint(uint64(identity), 10)
+	contentStr = "WORKLOAD_IDENTITY=" + strconv.FormatUint(uint64(identity), 10)
 	addContent(contentStr)
 	addContent("")
 
 	addContent("DOCKER_OPTS=\" -d -p 32767:32767 --log-driver syslog --restart always\"")
 	addContent("DOCKER_OPTS+=\" --privileged --add-host kvms.kubearmor.io:$CLUSTER_IP\"")
+	addContent("DOCKER_OPTS+=\" --env CLUSTER_PORT=$CLUSTER_PORT --env CLUSTER_IP=$CLUSTER_IP\"")
+	addContent("DOCKER_OPTS+=\" --env  WORKLOAD_IDENTITY=$WORKLOAD_IDENTITY\"")
 	addContent("DOCKER_OPTS+=\" --volume /var/run/docker.sock:/var/run/docker.sock\"")
 	addContent("DOCKER_OPTS+=\" --volume /usr/src:/usr/src\"")
 	addContent("DOCKER_OPTS+=\" --volume /lib/modules:/lib/modules\"")
@@ -82,7 +84,7 @@ func GenerateEWInstallationScript(port uint16, ipAddress, externalWorkload strin
 	addContent("DOCKER_OPTS+=\" --volume /etc/apparmor.d:/etc/apparmor.d\"")
 	addContent("DOCKER_OPTS+=\" --volume /etc/os-release:/media/root/etc/os-release\"")
 	addContent("")
-	addContent("KUBEARMOR_OPTS=\"-gRPC=32767 -logPath=/tmp/kubearmor.log -enableKubeArmorHostPolicy\"")
+	addContent("KUBEARMOR_OPTS=\"-gRPC=32767 -logPath=/tmp/kubearmor.log -enableKubeArmorHostPolicy=true\"")
 	addContent("")
 	addContent("if [ -n \"$(sudo docker ps -a -q -f name=kubearmor)\" ]; then")
 	addContent("    echo \"Shutting down running kubearmor agent\"")

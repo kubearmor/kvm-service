@@ -40,7 +40,7 @@ func main() {
 		enableEnforcerPerPodPtr := flag.Bool("enableEnforcerPerPod", false, "enabling the enforcer per pod")
 		//enableExternalWorkloadPolicyPtr := true
 	*/
-    portPtr := flag.Int("port", 0, "Cluster Port")
+    portPtr := flag.Int("port", 40400, "Cluster Port")
     ipAddressPtr := flag.String("ipAddress", "", "Cluster Address")
 
 	flag.Parse()

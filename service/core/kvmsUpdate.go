@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"sort"
+	//"sort"
 	"strings"
 	//"math/rand"
 	"context"
@@ -17,6 +17,7 @@ import (
 
 	kl "github.com/kubearmor/KVMService/service/common"
 	kg "github.com/kubearmor/KVMService/service/log"
+	ks "github.com/kubearmor/KVMService/service/server"
 	tp "github.com/kubearmor/KVMService/service/types"
 )
 
@@ -44,7 +45,7 @@ func (dm *KVMS) GetAllEtcdEWLabels() {
 		dm.MapEtcdEWIdentityLabels[identity] = value
 		dm.EtcdEWLabels = append(dm.EtcdEWLabels, value)
 
-		idNum, _ := strconv.ParseUint(identity, 0, 10)
+		idNum, _ := strconv.ParseUint(identity, 0, 16)
 		_, found := Find(dm.MapLabelToIdentity[value], uint16(idNum))
 		if !found {
 			dm.MapLabelToIdentity[value] = append(dm.MapLabelToIdentity[value], uint16(idNum))
@@ -59,36 +60,56 @@ func (dm *KVMS) GetAllEtcdEWLabels() {
 // ================================= //
 // == Host Security Policy Update == //
 // ================================= //
-func (dm *KVMS) PassOverToKVMSAgent(event tp.K8sKubeArmorHostPolicyEvent, conn *ClientConn) {
-	if conn != nil {
-		fmt.Println(event, conn)
+func (dm *KVMS) PassOverToKVMSAgent(event tp.K8sKubeArmorHostPolicyEvent, identities []uint16) {
+	eventWithIdentity := tp.K8sKubeArmorHostPolicyEventWithIdentity{}
+	fmt.Println(event, identities)
+
+	eventWithIdentity.Event = event
+	eventWithIdentity.CloseConnection = false
+	for _, identity := range identities {
+		eventWithIdentity.Identity = identity
+		kg.Printf("Sending the event towards the KVMAgent of identity:%v\n", identity)
+		ks.PolicyChan <- eventWithIdentity
 	}
 }
 
-func (dm *KVMS) GetConnFromIdentityPool(labels []string) *ClientConn {
-	fmt.Println(labels)
-
-	return &ClientConn{conn: nil}
+func (dm *KVMS) GetIdentityFromLabelPool(label string) []uint16 {
+	kg.Printf("Getting the identity from the pool => label:%s\n", label)
+	return dm.MapLabelToIdentity[label]
 }
 
 // UpdateHostSecurityPolicies Function
-func (dm *KVMS) UpdateHostSecurityPolicies(event tp.K8sKubeArmorHostPolicyEvent, labels []string) {
-	var conn *ClientConn
-	// get node identities
-	dm.GetAllEtcdEWLabels()
+func (dm *KVMS) UpdateHostSecurityPolicies(event tp.K8sKubeArmorHostPolicyEvent) {
+	var identities []uint16
+	var labels []string
+	secPolicy := tp.HostSecurityPolicy{}
 
+	secPolicy.Metadata = map[string]string{}
+	secPolicy.Metadata["policyName"] = event.Object.Metadata.Name
+
+	if err := kl.Clone(event.Object.Spec, &secPolicy.Spec); err != nil {
+		log.Fatal("Failed to clone a spec")
+	}
+
+	for k, v := range secPolicy.Spec.NodeSelector.MatchLabels {
+		labels = append(labels, k+"="+v)
+	}
+
+	dm.GetAllEtcdEWLabels()
 	if dm.EtcdEWLabels == nil {
-		fmt.Println("No etcd keys")
+		kg.Err("No etcd keys")
 		return
 	}
 
 	if kl.MatchIdentities(labels, dm.EtcdEWLabels) {
-		conn = dm.GetConnFromIdentityPool(labels)
-		fmt.Println("External workload CRD matched with policy")
+		for _, label := range labels {
+			identities = dm.GetIdentityFromLabelPool(label)
+			kg.Print("External workload CRD matched with policy!!!")
+			if len(identities) > 0 {
+				dm.PassOverToKVMSAgent(event, identities)
+			}
+		}
 	}
-
-	// Configure these policies over External workload
-	dm.PassOverToKVMSAgent(event, conn)
 }
 
 // WatchHostSecurityPolicies Function
@@ -115,39 +136,8 @@ func (dm *KVMS) WatchHostSecurityPolicies() {
 					continue
 				}
 
-				dm.HostSecurityPoliciesLock.Lock()
-
-				// create a host security policy
 				kg.Print("Host policy got detected")
-
-				secPolicy := tp.HostSecurityPolicy{}
-
-				secPolicy.Metadata = map[string]string{}
-				secPolicy.Metadata["policyName"] = event.Object.Metadata.Name
-
-				if err := kl.Clone(event.Object.Spec, &secPolicy.Spec); err != nil {
-					log.Fatal("Failed to clone a spec")
-				}
-
-				// add identities
-
-				secPolicy.Spec.NodeSelector.Identities = []string{}
-
-				for k, v := range secPolicy.Spec.NodeSelector.MatchLabels {
-					secPolicy.Spec.NodeSelector.Identities = append(secPolicy.Spec.NodeSelector.Identities, k+"="+v)
-				}
-
-				sort.Slice(secPolicy.Spec.NodeSelector.Identities, func(i, j int) bool {
-					return secPolicy.Spec.NodeSelector.Identities[i] < secPolicy.Spec.NodeSelector.Identities[j]
-				})
-
-				dm.HostSecurityPoliciesLock.Unlock()
-
-				//dm.Logger.Printf("Detected a Host Security Policy (%s/%s)", strings.ToLower(event.Type), secPolicy.Metadata["policyName"])
-
-				// apply security policies to a host
-				log.Print("Host Policy Labels:", secPolicy.Spec.NodeSelector.Identities)
-				dm.UpdateHostSecurityPolicies(event, secPolicy.Spec.NodeSelector.Identities)
+				dm.UpdateHostSecurityPolicies(event)
 			}
 		}
 	}

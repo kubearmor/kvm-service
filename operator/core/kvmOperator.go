@@ -131,9 +131,7 @@ func KVMSOperatorDaemon(port int, ipAddress string) {
 	// == //
 
 	if K8s.InitK8sClient() {
-		if dm.EnableExternalWorkloadPolicy {
-			go dm.WatchExternalWorkloadSecurityPolicies()
-		}
+		go dm.WatchExternalWorkloadSecurityPolicies()
 
 	} else {
 		kg.Print("Kubernetes is not initiliased and Operator is failed!")

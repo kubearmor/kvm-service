@@ -58,11 +58,11 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: kvmsoperator
-        image: quay.io/maddy007_maha/kvmsoperator:v4
+        image: quay.io/maddy007_maha/kvmsoperator:vInt6
         imagePullPolicy: Never
         securityContext:
           privileged: true
-        args: ["-port=32769", "-ipAddress='1.1.1.1'"]
+        args: ["-port=40400", "-ipAddress='192.168.100.112'"]
         volumeMounts:
         - name: docker-sock-path # docker (read-only)
           mountPath: /var/run/docker.sock
@@ -84,6 +84,9 @@ spec:
         - name: os-release-path # OS (read-only)
           mountPath: /media/root/etc/os-release
           readOnly: true
+        - name: install-scripts-ew
+          mountPath: /mnt/gen-script
+          readOnly: false
         livenessProbe:
           exec:
             command:
@@ -114,6 +117,10 @@ spec:
       - name: sys-fs-bpf-path # BPF
         hostPath:
           path: /sys/fs/bpf
+          type: Directory
+      - name: install-scripts-ew
+        hostPath:
+          path: /mnt/gen-script
           type: Directory
       - name: etc-kubernetes-certs
         hostPath:
