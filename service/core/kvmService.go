@@ -133,7 +133,7 @@ func GetOSSigChannel() chan os.Signal {
 // == Main == //
 // ========== //
 
-// KVMSService Function
+// KVMSDaemon Function
 func KVMSDaemon(portPtr int, ipAddressPtr string) {
 	// create a daemon
 	dm := NewKVMSDaemon(portPtr, ipAddressPtr)

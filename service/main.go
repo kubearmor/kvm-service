@@ -12,9 +12,16 @@ import (
 	kg "github.com/kubearmor/KVMService/service/log"
 )
 
+// GitCommit string passed from govvv
 var GitCommit string
+
+// GitBranch string passed from govvv
 var GitBranch string
+
+// BuildDate string passed from govvv
 var BuildDate string
+
+// Version string passed from govvv
 var Version string
 
 func printBuildDetails() {
