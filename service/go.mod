@@ -4,14 +4,14 @@ go 1.15
 
 replace (
 	github.com/coreos/bbolt v1.3.6 => go.etcd.io/bbolt v1.3.6
-	github.com/kubearmor/KVMService/protobuf => ../protobuf
+	github.com/kubearmor/KVMService/service/protobuf => ./protobuf
 	github.com/kubearmor/KVMService/service/server => ./server
 )
 
 require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/imdario/mergo v0.3.11 // indirect
-	github.com/kubearmor/KVMService/protobuf v0.0.0-00010101000000-000000000000
+	github.com/kubearmor/KVMService/service/protobuf v0.0.0-00010101000000-000000000000
 	go.etcd.io/etcd/client/pkg/v3 v3.5.0
 	go.etcd.io/etcd/client/v3 v3.5.0
 	go.uber.org/zap v1.18.1

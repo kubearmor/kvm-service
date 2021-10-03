@@ -2,7 +2,7 @@ syntax = "proto3";
  
 package kvm;
 
-option go_package="github.com/kubearmor/KVMService/protobuf";
+option go_package="github.com/kubearmor/KVMService/service/protobuf";
 
 message agentIdentity {
     string identity = 1;

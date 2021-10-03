@@ -1,4 +1,4 @@
-module github.com/kubearmor/KVMService/protobuf
+module github.com/kubearmor/KVMService/service/protobuf
 
 go 1.17
 

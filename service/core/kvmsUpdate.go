@@ -10,6 +10,7 @@ import (
 	"log"
 	"sort"
 	"strings"
+
 	//"math/rand"
 	"context"
 	"strconv"
@@ -80,7 +81,6 @@ func (dm *KVMS) GetIdentityFromLabelPool(label string) []uint16 {
 // UpdateHostSecurityPolicies Function
 func (dm *KVMS) UpdateHostSecurityPolicies(event tp.K8sKubeArmorHostPolicyEvent, labels []string) {
 	var identities []uint16
-	// var label string
 	dm.GetAllEtcdEWLabels()
 
 	if dm.EtcdEWLabels == nil {

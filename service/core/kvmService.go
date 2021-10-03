@@ -5,7 +5,6 @@ package core
 
 import (
 	//"context"
-	"log"
 	"os"
 	"os/signal"
 	"strconv"
@@ -73,7 +72,7 @@ type KVMS struct {
 
 // NewKVMSDaemon Function
 func NewKVMSDaemon(port int, ipAddress string) *KVMS {
-    log.Print("Initializing all the KVMS daemon attributes")
+	kg.Print("Initializing all the KVMS daemon attributes")
 	dm := new(KVMS)
 
 	dm.EtcdClient = etcd.NewEtcdClient()
@@ -146,9 +145,9 @@ func KVMSDaemon(portPtr int, ipAddressPtr string) {
 
 	if K8s.InitK8sClient() {
 		// watch host security policies
-        kg.Print("K8S Client is successfully initialize")
+		kg.Print("K8S Client is successfully initialize")
 
-        kg.Print("Watcher triggered for the host policies")
+		kg.Print("Watcher triggered for the host policies")
 		go dm.WatchHostSecurityPolicies()
 
 		kg.Print("Triggered the keepalive ETCD client")
@@ -168,6 +167,7 @@ func KVMSDaemon(portPtr int, ipAddressPtr string) {
 	sigChan := GetOSSigChannel()
 	<-sigChan
 	close(StopChan)
+	close(ks.PolicyChan)
 
 	// destroy the daemon
 	dm.DestroyKVMS()

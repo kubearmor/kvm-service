@@ -3,12 +3,12 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"io"
 	"net"
 	"strconv"
 
-	pb "github.com/kubearmor/KVMService/protobuf"
 	kg "github.com/kubearmor/KVMService/service/log"
+	pb "github.com/kubearmor/KVMService/service/protobuf"
 	tp "github.com/kubearmor/KVMService/service/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -45,7 +45,6 @@ func (s *server) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 	loop = true
 
 	kg.Print("Started Policy Streamer\n")
-	PolicyChan = make(chan tp.K8sKubeArmorHostPolicyEventWithIdentity)
 
 	go func() {
 		for loop {
@@ -54,12 +53,9 @@ func (s *server) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 				closeEvent := tp.K8sKubeArmorHostPolicyEventWithIdentity{}
 				closeEvent.Identity = GetIdentityFromContext(stream.Context())
 				closeEvent.CloseConnection = true
-				log.Printf("Done context received for identity %d\n", closeEvent.Identity)
+				kg.Errf("Closing client connections for identity %d\n", closeEvent.Identity)
 				loop = false
 				PolicyChan <- closeEvent
-				// Client Connection interrupted
-				// Remove identity from etcd
-				// close(PolicyChan)
 			}
 		}
 	}()
@@ -71,21 +67,22 @@ func (s *server) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 				if !event.CloseConnection {
 					policyBytes, err := json.Marshal(&event.Event)
 					if err != nil {
-						log.Print("Failed to marshall data")
+						kg.Err("Failed to marshall data")
 					} else {
 						policy.PolicyData = policyBytes
 						err := stream.Send(&policy)
+						if err == io.EOF {
+							kg.Err("client disconnected")
+						}
 						if err != nil {
-							log.Print("Failed to send")
+							kg.Err("Failed to send")
 						}
 						response, err := stream.Recv()
-						log.Printf("Policy Enforcement status in host : %d", response.Status)
+						kg.Printf("Policy Enforcement status in host : %d", response.Status)
 					}
 				} else {
-					log.Printf("Context is %d\n", GetIdentityFromContext(stream.Context()))
-					log.Print("Closing the connection")
-					close(PolicyChan)
-					return nil
+					kg.Print("Closing connection\n")
+					break
 				}
 				break
 			}
@@ -94,12 +91,9 @@ func (s *server) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 }
 
 func (s *server) RegisterAgentIdentity(ctx context.Context, in *pb.AgentIdentity) (*pb.Status, error) {
-	var identity uint16
-	// TODO : Which function for identity register with etcd
 	value, _ := strconv.Atoi(in.Identity)
-	identity = uint16(value)
-	log.Printf("RegisterAgentIdentity = %v", identity)
-
+	identity := uint16(value)
+	kg.Printf("Agent Identity is %v\n", identity)
 	return &pb.Status{Status: 0}, nil
 }
 
@@ -108,14 +102,15 @@ func InitServer(grpcPort string) error {
 	// TCP connection - Listen on port specified in input
 	tcpConn, err := net.Listen("tcp", ":"+grpcPort)
 	if err != nil {
-		kg.Printf("Error listening on port %s", grpcPort)
-	} else {
-		kg.Printf("Listening on port %s", grpcPort)
+		kg.Errf("Error listening on port %s", grpcPort)
 	}
 
 	// Start gRPC server and register for protobuf
 	gRPCServer := grpc.NewServer()
 	pb.RegisterKVMServer(gRPCServer, &server{})
+
+	// Create a channel for posting policy messages
+	PolicyChan = make(chan tp.K8sKubeArmorHostPolicyEventWithIdentity)
 
 	err = gRPCServer.Serve(tcpConn)
 	if err != nil {
