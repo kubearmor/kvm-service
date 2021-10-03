@@ -528,6 +528,13 @@ type ExternalWorkloadSecurityPolicy struct {
 	Spec     ExternalWorkloadSecuritySpec `json:"spec"`
 }
 
+// K8sKubeArmorHostPolicyEventWithIdentities
+type K8sKubeArmorHostPolicyEventWithIdentity struct {
+	Event           K8sKubeArmorHostPolicyEvent
+	Identity        uint16
+	CloseConnection bool
+}
+
 /*
 // ================== //
 // == Process Tree == //

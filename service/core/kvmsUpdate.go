@@ -10,6 +10,7 @@ import (
 	"log"
 	"sort"
 	"strings"
+
 	//"math/rand"
 	"context"
 	"strconv"
@@ -17,6 +18,7 @@ import (
 
 	kl "github.com/kubearmor/KVMService/service/common"
 	kg "github.com/kubearmor/KVMService/service/log"
+	ks "github.com/kubearmor/KVMService/service/server"
 	tp "github.com/kubearmor/KVMService/service/types"
 )
 
@@ -59,22 +61,26 @@ func (dm *KVMS) GetAllEtcdEWLabels() {
 // ================================= //
 // == Host Security Policy Update == //
 // ================================= //
-func (dm *KVMS) PassOverToKVMSAgent(event tp.K8sKubeArmorHostPolicyEvent, conn *ClientConn) {
-	if conn != nil {
-		fmt.Println(event, conn)
+func (dm *KVMS) PassOverToKVMSAgent(event tp.K8sKubeArmorHostPolicyEvent, identities []uint16) {
+	eventWithIdentity := tp.K8sKubeArmorHostPolicyEventWithIdentity{}
+	fmt.Println(event, identities)
+
+	eventWithIdentity.Event = event
+	eventWithIdentity.CloseConnection = false
+	for _, identity := range identities {
+		eventWithIdentity.Identity = identity
+		ks.PolicyChan <- eventWithIdentity
 	}
 }
 
-func (dm *KVMS) GetConnFromIdentityPool(labels []string) *ClientConn {
-	fmt.Println(labels)
-
-	return &ClientConn{conn: nil}
+func (dm *KVMS) GetIdentityFromLabelPool(label string) []uint16 {
+	fmt.Println(label)
+	return dm.MapLabelToIdentity[label]
 }
 
 // UpdateHostSecurityPolicies Function
 func (dm *KVMS) UpdateHostSecurityPolicies(event tp.K8sKubeArmorHostPolicyEvent, labels []string) {
-	var conn *ClientConn
-	// get node identities
+	var identities []uint16
 	dm.GetAllEtcdEWLabels()
 
 	if dm.EtcdEWLabels == nil {
@@ -83,12 +89,14 @@ func (dm *KVMS) UpdateHostSecurityPolicies(event tp.K8sKubeArmorHostPolicyEvent,
 	}
 
 	if kl.MatchIdentities(labels, dm.EtcdEWLabels) {
-		conn = dm.GetConnFromIdentityPool(labels)
-		fmt.Println("External workload CRD matched with policy")
+		for _, label := range labels {
+			identities = dm.GetIdentityFromLabelPool(label)
+			fmt.Println("External workload CRD matched with policy")
+			if len(identities) > 0 {
+				dm.PassOverToKVMSAgent(event, identities)
+			}
+		}
 	}
-
-	// Configure these policies over External workload
-	dm.PassOverToKVMSAgent(event, conn)
 }
 
 // WatchHostSecurityPolicies Function
