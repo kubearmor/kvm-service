@@ -1,6 +1,10 @@
 # Copyright 2021 Authors of kvmservice
 # SPDX-License-Identifier: Apache-2.0
 
+ifeq (,$(shell which govvv))
+$(shell go install github.com/ahmetb/govvv@latest)
+endif
+
 CURDIR          := $(shell pwd)
 CONTRIBDIR      := $(realpath $(CURDIR)/../contribution)
 GO_EXEC         := $(shell which go)
@@ -9,12 +13,13 @@ NETNEXT         := 1
 DLV_EXEC         = $(GOPATH)/bin/dlv
 DLV_LPORT       := 2345
 DLV_RPORT       := $(shell expr $(DLV_LPORT) + $(NETNEXT))
-KVMSERVICE_PID    = $(shell pgrep kvmservice)
+KVMSERVICE_PID   = $(shell pgrep kvmservice)
+GIT_INFO        := $(shell govvv -flags)
 
 .PHONY: build
 build:
 	cd $(CURDIR); go mod tidy
-	cd $(CURDIR); go build -o kvmservice main.go
+	cd $(CURDIR); go build -ldflags "-w -s ${GIT_INFO}" -o kvmservice main.go
 
 .PHONY: build-test
 build-test:
