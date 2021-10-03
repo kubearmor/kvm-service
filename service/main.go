@@ -12,7 +12,25 @@ import (
 	kg "github.com/kubearmor/KVMService/service/log"
 )
 
+// GitCommit string passed from govvv
+var GitCommit string
+
+// GitBranch string passed from govvv
+var GitBranch string
+
+// BuildDate string passed from govvv
+var BuildDate string
+
+// Version string passed from govvv
+var Version string
+
+func printBuildDetails() {
+	kg.Printf("BUILD-INFO: commit:%s, branch: %s, date: %s, version: %s",
+		GitCommit, GitBranch, BuildDate, Version)
+}
+
 func main() {
+	printBuildDetails()
 	if os.Geteuid() != 0 {
 		kg.Printf("Need to have root privileges to run %s\n", os.Args[0])
 		return
@@ -40,8 +58,8 @@ func main() {
 		enableEnforcerPerPodPtr := flag.Bool("enableEnforcerPerPod", false, "enabling the enforcer per pod")
 		//enableExternalWorkloadPolicyPtr := true
 	*/
-    portPtr := flag.Int("port", 0, "Cluster Port")
-    ipAddressPtr := flag.String("ipAddress", "", "Cluster Address")
+	portPtr := flag.Int("port", 0, "Cluster Port")
+	ipAddressPtr := flag.String("ipAddress", "", "Cluster Address")
 
 	flag.Parse()
 

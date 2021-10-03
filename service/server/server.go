@@ -48,46 +48,49 @@ func (s *server) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 
 	go func() {
 		for loop {
-			select {
-			case <-stream.Context().Done():
-				closeEvent := tp.K8sKubeArmorHostPolicyEventWithIdentity{}
-				closeEvent.Identity = GetIdentityFromContext(stream.Context())
-				closeEvent.CloseConnection = true
-				kg.Errf("Closing client connections for identity %d\n", closeEvent.Identity)
-				loop = false
-				PolicyChan <- closeEvent
-			}
+			// select {
+			// case <-stream.Context().Done():
+			<-stream.Context().Done()
+			closeEvent := tp.K8sKubeArmorHostPolicyEventWithIdentity{}
+			closeEvent.Identity = GetIdentityFromContext(stream.Context())
+			closeEvent.CloseConnection = true
+			kg.Errf("Closing client connections for identity %d\n", closeEvent.Identity)
+			loop = false
+			PolicyChan <- closeEvent
+			//}
 		}
 	}()
 
 	for {
-		select {
-		case event := <-PolicyChan:
-			if event.Identity == GetIdentityFromContext(stream.Context()) {
-				if !event.CloseConnection {
-					policyBytes, err := json.Marshal(&event.Event)
-					if err != nil {
-						kg.Err("Failed to marshall data")
-					} else {
-						policy.PolicyData = policyBytes
-						err := stream.Send(&policy)
-						if err == io.EOF {
-							kg.Err("client disconnected")
-						}
-						if err != nil {
-							kg.Err("Failed to send")
-						}
-						response, err := stream.Recv()
-						kg.Printf("Policy Enforcement status in host : %d", response.Status)
-					}
+		// select {
+		// case event := <-PolicyChan:
+		event := <-PolicyChan
+		if event.Identity == GetIdentityFromContext(stream.Context()) {
+			if !event.CloseConnection {
+				policyBytes, err := json.Marshal(&event.Event)
+				if err != nil {
+					kg.Err("Failed to marshall data")
 				} else {
-					kg.Print("Closing connection\n")
-					break
+					policy.PolicyData = policyBytes
+					err := stream.Send(&policy)
+					if err == io.EOF {
+						kg.Err("client disconnected")
+					}
+					if err != nil {
+						kg.Err("Failed to send")
+					}
+					response, err := stream.Recv()
+					kg.Printf("Policy Enforcement status in host : %d err=%v", response.Status, err)
 				}
+			} else {
+				kg.Print("Closing connection\n")
 				break
 			}
+			break
 		}
+		// }
 	}
+	return nil
 }
 
 func (s *server) RegisterAgentIdentity(ctx context.Context, in *pb.AgentIdentity) (*pb.Status, error) {
@@ -97,7 +100,7 @@ func (s *server) RegisterAgentIdentity(ctx context.Context, in *pb.AgentIdentity
 	return &pb.Status{Status: 0}, nil
 }
 
-func InitServer(grpcPort string) error {
+func InitServer(grpcPort string) {
 
 	// TCP connection - Listen on port specified in input
 	tcpConn, err := net.Listen("tcp", ":"+grpcPort)
@@ -116,6 +119,4 @@ func InitServer(grpcPort string) error {
 	if err != nil {
 		kg.Err("Failed to serve")
 	}
-
-	return err
 }

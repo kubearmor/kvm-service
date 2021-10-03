@@ -7,19 +7,17 @@ package etcdClient
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"time"
 
-	tp "github.com/kubearmor/KVMService/service/types"
 	"go.etcd.io/etcd/client/pkg/v3/transport"
-	"go.etcd.io/etcd/client/v3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-var kew_crds []string
-var ew_khps []tp.MK8sKubeArmorHostPolicy
+// var kew_crds []string
+// var ew_khps []tp.MK8sKubeArmorHostPolicy
 
 type EtcdClient struct {
 	etcdClient    *clientv3.Client
@@ -116,6 +114,7 @@ func (cli *EtcdClient) KeepAliveEtcdConnection() {
 	}
 }
 
+/*
 func tempNewEtcdClient() {
 	certFile := "/etc/kubernetes/pki/etcd/server.crt"
 	keyFile := "/etc/kubernetes/pki/etcd/server.key"
@@ -215,3 +214,4 @@ func mmain() {
 	log.Println("Creating new etcd client")
 	//etcdClient = NewEtcdClient()
 }
+*/
