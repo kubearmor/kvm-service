@@ -44,8 +44,6 @@ jobs:
         uses: actions/checkout@v2
 
       - name: golangci-lint
-        run: |
-          cd service
-        env:
-          GO111MODULE: "off"
+        with:
+          working-directory: service
         uses: golangci/golangci-lint-action@v2

@@ -61,17 +61,18 @@ gofmt:
 
 .PHONY: golint
 golint:
-ifeq (, $(shell which golint))
-	@{ \
-	set -e ;\
-	GOLINT_TMP_DIR=$$(mktemp -d) ;\
-	cd $$GOLINT_TMP_DIR ;\
-	go mod init tmp ;\
-	go get -u golang.org/x/lint/golint ;\
-	rm -rf $$GOLINT_TMP_DIR ;\
-	}
-endif
-	cd $(CURDIR); golint ./...
+	golangci-lint run
+#ifeq (, $(shell which golint))
+#	@{ \
+#	set -e ;\
+#	GOLINT_TMP_DIR=$$(mktemp -d) ;\
+#	cd $$GOLINT_TMP_DIR ;\
+#	go mod init tmp ;\
+#	go get -u golang.org/x/lint/golint ;\
+#	rm -rf $$GOLINT_TMP_DIR ;\
+#	}
+#endif
+#	cd $(CURDIR); golint ./...
 
 .PHONY: gosec
 gosec:
