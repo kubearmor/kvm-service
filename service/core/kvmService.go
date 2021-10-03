@@ -16,13 +16,12 @@ import (
 	kg "github.com/kubearmor/KVMService/service/log"
 	ks "github.com/kubearmor/KVMService/service/server"
 	tp "github.com/kubearmor/KVMService/service/types"
-	"google.golang.org/grpc"
 )
 
 // ClientConn is the wrapper for a grpc client conn
 type ClientConn struct {
-	conn      *grpc.ClientConn
-	unhealthy bool
+	// conn      *grpc.ClientConn
+	// unhealthy bool
 }
 
 // ====================== //
