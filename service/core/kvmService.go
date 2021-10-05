@@ -63,7 +63,7 @@ type KVMS struct {
 	ExternalWorkloadSecurityPoliciesLock *sync.RWMutex
 
 	MapIdentityToLabel              map[uint16]string
-	MapLabelToIdentity              map[string][]uint16
+	MapLabelToIdentities            map[string][]uint16
 	MapExternalWorkloadConnIdentity map[uint16]ClientConn
 
 	ClusterPort      uint16
@@ -106,7 +106,7 @@ func NewKVMSDaemon(port int, ipAddress string) *KVMS {
 	dm.ExternalWorkloadSecurityPoliciesLock = new(sync.RWMutex)
 
 	dm.MapIdentityToLabel = make(map[uint16]string)
-	dm.MapLabelToIdentity = make(map[string][]uint16)
+	dm.MapLabelToIdentities = make(map[string][]uint16)
 	dm.MapExternalWorkloadConnIdentity = make(map[uint16]ClientConn)
 
 	dm.WgDaemon = sync.WaitGroup{}
@@ -182,6 +182,7 @@ func KVMSDaemon(portPtr int, ipAddressPtr string) {
 	sigChan := GetOSSigChannel()
 	<-sigChan
 	close(StopChan)
+	close(ks.PolicyChan)
 
 	// destroy the daemon
 	dm.DestroyKVMS()

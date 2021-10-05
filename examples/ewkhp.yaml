@@ -6,7 +6,6 @@ spec:
   nodeSelector:
     matchLabels:
       abc: xyz
-        #kubearmorexternalworkloads.security.kubearmor.com: external-workload-01
   severity: 5
   file:
     matchPaths:

@@ -41,6 +41,7 @@ metadata:
   labels:
     kvmservice-app: kvmservice
 spec:
+  replicas: 1
   selector:
     matchLabels:
       kvmservice-app: kvmservice
@@ -62,13 +63,14 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: kvmservice
-        image: quay.io/maddy007_maha/kvmservice:vL5
+        image: quay.io/maddy007_maha/kvms:v7
         imagePullPolicy: Never
         securityContext:
           privileged: true
         args: ["-port=40400", "-ipAddress='192.168.100.112'"]
         ports:
         - containerPort: 40400
+          hostPort: 0
         volumeMounts:
         - name: docker-sock-path # docker (read-only)
           mountPath: /var/run/docker.sock

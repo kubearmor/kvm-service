@@ -1,7 +1,7 @@
 apiVersion: security.kubearmor.com/v1
 kind: KubeArmorExternalWorkloadPolicy
 metadata:
-  name: demo-01
+  name: demo-kew-02
   labels:
     abc: xyz
       #io.kubernetes.pod.namespace: default 

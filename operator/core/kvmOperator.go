@@ -14,6 +14,7 @@ import (
 	etcd "github.com/kubearmor/KVMService/operator/etcd"
 	kg "github.com/kubearmor/KVMService/operator/log"
 	tp "github.com/kubearmor/KVMService/operator/types"
+	ct "github.com/kubearmor/KVMService/operator/constants"
 	"google.golang.org/grpc"
 )
 
@@ -52,7 +53,7 @@ type KVMSOperator struct {
 	MapEWNameToIdentity map[string]uint16
 
 	MapIdentityToLabel              map[uint16]string
-	MapLabelToIdentity              map[string][]uint16
+	MapLabelToIdentities              map[string][]uint16
 	MapExternalWorkloadConnIdentity map[uint16]ClientConn
 
 	// WgOperatorDaemon Handler
@@ -71,7 +72,7 @@ func NewKVMSOperatorDaemon(port int, ipAddress string) *KVMSOperator {
 	dm.ExternalWorkloadSecurityPoliciesLock = new(sync.RWMutex)
 
 	dm.MapIdentityToLabel = make(map[uint16]string)
-	dm.MapLabelToIdentity = make(map[string][]uint16)
+	dm.MapLabelToIdentities = make(map[string][]uint16)
 
 	dm.MapIdentityToEWName = make(map[uint16]string)
 	dm.MapEWNameToIdentity = make(map[string]uint16)
@@ -94,7 +95,7 @@ func (dm *KVMSOperator) DestroyKVMSOperator() {
 	kg.Print("Waiting for remaining routine terminations")
 
 	kg.Print("Deleting the external worklaods keys from etcd")
-	dm.EtcdClient.EtcdDelete(context.TODO(), "/externalworkloads/")
+	dm.EtcdClient.EtcdDelete(context.TODO(), ct.KvmOprLabelToIdentities)
 
 	dm.WgOperatorDaemon.Wait()
 }

@@ -58,7 +58,7 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: kvmsoperator
-        image: quay.io/maddy007_maha/kvmsoperator:vL3
+        image: quay.io/maddy007_maha/kvmop:v4
         imagePullPolicy: Never
         securityContext:
           privileged: true

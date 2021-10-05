@@ -5,7 +5,6 @@ package core
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	//"sort"
@@ -19,6 +18,7 @@ import (
 	kg "github.com/kubearmor/KVMService/service/log"
 	ks "github.com/kubearmor/KVMService/service/server"
 	tp "github.com/kubearmor/KVMService/service/types"
+	ct "github.com/kubearmor/KVMService/service/constants"
 )
 
 func Find(slice []uint16, val uint16) (int, bool) {
@@ -30,10 +30,10 @@ func Find(slice []uint16, val uint16) (int, bool) {
 	return -1, false
 }
 
-func (dm *KVMS) GetAllEtcdEWLabels() {
+func (dm *KVMS) mGetAllEtcdEWLabels() {
 	kg.Print("Getting the External workload labels from ETCD")
 
-	etcdLabels, err := dm.EtcdClient.EtcdGet(context.TODO(), "/externalworkloads")
+	etcdLabels, err := dm.EtcdClient.EtcdGet(context.TODO(), ct.KvmOprLabelToIdentities)
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -46,20 +46,47 @@ func (dm *KVMS) GetAllEtcdEWLabels() {
 		dm.EtcdEWLabels = append(dm.EtcdEWLabels, value)
 
 		idNum, _ := strconv.ParseUint(identity, 0, 16)
-		_, found := Find(dm.MapLabelToIdentity[value], uint16(idNum))
+		_, found := Find(dm.MapLabelToIdentities[value], uint16(idNum))
 		if !found {
-			dm.MapLabelToIdentity[value] = append(dm.MapLabelToIdentity[value], uint16(idNum))
+			dm.MapLabelToIdentities[value] = append(dm.MapLabelToIdentities[value], uint16(idNum))
 		}
 	}
-
-	fmt.Println("MDEBUG:", dm.EtcdEWLabels)
-	fmt.Println("MDEBUG:", dm.MapEtcdEWIdentityLabels)
-	fmt.Println("MDEBUG:", dm.MapLabelToIdentity)
 }
 
-// ================================= //
-// == Host Security Policy Update == //
-// ================================= //
+func (dm *KVMS) GetAllEtcdEWLabels() {
+	kg.Print("Getting the External workload labels from ETCD")
+	etcdLabels, err := dm.EtcdClient.EtcdGet(context.TODO(), ct.KvmOprLabelToIdentities)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	for key, _ := range etcdLabels {
+		s := strings.Split(key, "/")
+		label := s[len(s)-1]
+		dm.EtcdEWLabels = append(dm.EtcdEWLabels, label)
+	}
+
+	for _, label := range dm.EtcdEWLabels {
+		data, err := dm.EtcdClient.EtcdGetRaw(context.TODO(), ct.KvmOprLabelToIdentities+label)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+
+		for _, ev := range data.Kvs {
+			var arr []uint16
+			err := json.Unmarshal(ev.Value, &arr)
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
+			s := strings.Split(string(ev.Key), "/")
+			dm.MapLabelToIdentities[s[len(s)-1]] = arr
+		}
+	}
+}
+
 func (dm *KVMS) PassOverToKVMSAgent(event tp.K8sKubeArmorHostPolicyEvent, identities []uint16) {
 	eventWithIdentity := tp.K8sKubeArmorHostPolicyEventWithIdentity{}
 
@@ -74,9 +101,12 @@ func (dm *KVMS) PassOverToKVMSAgent(event tp.K8sKubeArmorHostPolicyEvent, identi
 
 func (dm *KVMS) GetIdentityFromLabelPool(label string) []uint16 {
 	kg.Printf("Getting the identity from the pool => label:%s\n", label)
-	return dm.MapLabelToIdentity[label]
+	return dm.MapLabelToIdentities[label]
 }
 
+// ================================= //
+// == Host Security Policy Update == //
+// ================================= //
 // UpdateHostSecurityPolicies Function
 func (dm *KVMS) UpdateHostSecurityPolicies(event tp.K8sKubeArmorHostPolicyEvent) {
 	var identities []uint16
@@ -103,7 +133,7 @@ func (dm *KVMS) UpdateHostSecurityPolicies(event tp.K8sKubeArmorHostPolicyEvent)
 	if kl.MatchIdentities(labels, dm.EtcdEWLabels) {
 		for _, label := range labels {
 			identities = dm.GetIdentityFromLabelPool(label)
-			kg.Print("External workload CRD matched with policy!!!")
+			kg.Printf("External workload CRD matched with policy identity:%+v label:%s\n", identities, label)
 			if len(identities) > 0 {
 				dm.PassOverToKVMSAgent(event, identities)
 			}
@@ -114,7 +144,7 @@ func (dm *KVMS) UpdateHostSecurityPolicies(event tp.K8sKubeArmorHostPolicyEvent)
 // WatchHostSecurityPolicies Function
 func (dm *KVMS) WatchHostSecurityPolicies() {
 	for {
-		if !K8s.CheckCustomResourceDefinition("kubearmorhostpolicies") {
+		if !K8s.CheckCustomResourceDefinition(ct.KhpCRDName) {
 			time.Sleep(time.Second * 1)
 			continue
 		}

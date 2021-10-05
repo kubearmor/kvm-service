@@ -12,6 +12,7 @@ import (
 	kg "github.com/kubearmor/KVMService/service/log"
 	pb "github.com/kubearmor/KVMService/service/protobuf"
 	tp "github.com/kubearmor/KVMService/service/types"
+	ct "github.com/kubearmor/KVMService/service/constants"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -57,13 +58,53 @@ func GetIdentityFromContext(ctx context.Context) uint16 {
 	return uint16(identity)
 }
 
+func (s *Server) UpdateETCDLabelToIdentitiesMaps(identity uint16) {
+	////////
+	EtcdClient.EtcdDelete(context.Background(), ct.KvmSvcIdentitiToPodIps+strconv.Itoa(int(identity)))
+
+	labelKV, err := EtcdClient.EtcdGet(context.Background(), ct.KvmOprIdentityToLabel+strconv.Itoa(int(identity)))
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	label := labelKV[ct.KvmOprIdentityToLabel+strconv.Itoa(int(identity))]
+
+	data, err := EtcdClient.EtcdGetRaw(context.Background(), ct.KvmOprLabelToIdentities+label)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	var arr []uint16
+	for _, ev := range data.Kvs {
+		err := json.Unmarshal(ev.Value, &arr)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		kg.Printf("Removing the identity(%d) from the labels map of ETCD arr:%+v", identity, arr)
+		for index, value := range arr {
+			if identity == value {
+				arr[index] = arr[len(arr)-1]
+				arr[len(arr)-1] = 0
+				arr = arr[:len(arr)-1]
+			}
+		}
+		kg.Printf("After removing the identity(%d) from the labels map of ETCD arr:%+v", identity, arr)
+		mapStr, _ := json.Marshal(arr)
+		err = EtcdClient.EtcdPut(context.Background(), ct.KvmOprLabelToIdentities+label, string(mapStr))
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
 func (s *Server) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 	var policy pb.PolicyData
 	var loop bool
 	loop = true
 
 	kg.Print("Started Policy Streamer")
-	PolicyChan = make(chan tp.K8sKubeArmorHostPolicyEventWithIdentity)
 
 	go func() {
 		for loop {
@@ -73,11 +114,11 @@ func (s *Server) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 				closeEvent.Identity = GetIdentityFromContext(stream.Context())
 				closeEvent.CloseConnection = true
 				kg.Printf("Done context received for identity %d", closeEvent.Identity)
+				kg.Printf("Removing the identity from the ETCD")
+				s.UpdateETCDLabelToIdentitiesMaps(closeEvent.Identity)
+
 				loop = false
 				PolicyChan <- closeEvent
-				// Client Connection interrupted
-				// Remove identity from etcd
-				// close(PolicyChan)
 			}
 		}
 	}()
@@ -105,7 +146,6 @@ func (s *Server) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 				} else {
 					kg.Printf("Context is %d", GetIdentityFromContext(stream.Context()))
 					kg.Print("Closing the connection")
-					close(PolicyChan)
 					return nil
 				}
 				break
@@ -115,18 +155,18 @@ func (s *Server) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 }
 
 func IsIdentityServing(identity string) int {
-	kvPair, err := EtcdClient.EtcdGet(context.Background(), "/ew-identities/"+identity)
+	kvPair, err := EtcdClient.EtcdGet(context.Background(), ct.KvmSvcIdentitiToPodIps+identity)
 	if err != nil {
 		log.Fatal(err)
 		return 0
 	}
 
 	if len(kvPair) > 0 {
-		kg.Printf("This Identity is already served by this podIP:%s", kvPair["/ew-identities/"+identity])
+		kg.Printf("This Identity is already served by this podIP:%s", kvPair[ct.KvmSvcIdentitiToPodIps+identity])
 		return 0
 	}
 
-	etcdLabels, err := EtcdClient.EtcdGet(context.Background(), "/externalworkloads")
+	etcdLabels, err := EtcdClient.EtcdGet(context.Background(), ct.KvmOprIdentityToLabel)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -134,11 +174,11 @@ func IsIdentityServing(identity string) int {
 		s := strings.Split(key, "/")
 		id := s[len(s)-1]
 		if id == identity {
-            kg.Printf("Validated the recieved identity from the etcd DB identity:%s label:%s", identity, value)
+			kg.Printf("Validated the identity from the etcd DB identity:%s is unique for label:%s", identity, value)
 			return 1
 		}
 	}
-    kg.Printf("Recieved the invalid identity:%s", identity)
+	kg.Printf("Recieved the invalid identity:%s", identity)
 	return 0
 }
 
@@ -147,7 +187,7 @@ func (s *Server) RegisterAgentIdentity(ctx context.Context, in *pb.AgentIdentity
 	var identity uint16
 	// TODO : Which function for identity register with etcd
 	if IsIdentityServing(in.Identity) == 0 {
-		kg.Print("Connection refused due to already busy identity")
+		kg.Print("Connection refused due to already busy or invalid identity")
 		return &pb.Status{Status: -1}, nil
 	}
 
@@ -155,13 +195,14 @@ func (s *Server) RegisterAgentIdentity(ctx context.Context, in *pb.AgentIdentity
 	identity = uint16(value)
 	kg.Printf("New connection recieved RegisterAgentIdentity: %v podIp: %v", identity, podIp)
 
-	EtcdClient.EtcdPutWithTTL(context.Background(), "/ew-identities/"+in.Identity, podIp)
+	EtcdClient.EtcdPutWithTTL(context.Background(), ct.KvmSvcIdentitiToPodIps+in.Identity, podIp)
 
 	return &pb.Status{Status: 0}, nil
 }
 
 func (s *Server) InitServer() error {
 	// TCP connection - Listen on port specified in input
+	PolicyChan = make(chan tp.K8sKubeArmorHostPolicyEventWithIdentity)
 	tcpConn, err := net.Listen("tcp", ":"+s.port)
 	if err != nil {
 		kg.Printf("Error listening on port %s", s.port)
