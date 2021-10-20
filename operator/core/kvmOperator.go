@@ -11,10 +11,11 @@ import (
 	"syscall"
 	"time"
 
+	cli "github.com/kubearmor/KVMService/operator/clihandler"
+	ct "github.com/kubearmor/KVMService/operator/constants"
 	etcd "github.com/kubearmor/KVMService/operator/etcd"
 	kg "github.com/kubearmor/KVMService/operator/log"
 	tp "github.com/kubearmor/KVMService/operator/types"
-	ct "github.com/kubearmor/KVMService/operator/constants"
 	"google.golang.org/grpc"
 )
 
@@ -39,12 +40,14 @@ func init() {
 // KVMSOperator Structure
 type KVMSOperator struct {
 	EtcdClient *etcd.EtcdClient
+	CliHandler *cli.Server
 
 	EnableExternalWorkloadPolicy bool
 
 	Port      uint16
 	ClusterIp string
 
+    cliPort string
 	// External workload policies and mappers
 	ExternalWorkloadSecurityPolicies     []tp.ExternalWorkloadSecurityPolicy
 	ExternalWorkloadSecurityPoliciesLock *sync.RWMutex
@@ -53,7 +56,7 @@ type KVMSOperator struct {
 	MapEWNameToIdentity map[string]uint16
 
 	MapIdentityToLabel              map[uint16]string
-	MapLabelToIdentities              map[string][]uint16
+	MapLabelToIdentities            map[string][]uint16
 	MapExternalWorkloadConnIdentity map[uint16]ClientConn
 
 	// WgOperatorDaemon Handler
@@ -65,6 +68,8 @@ func NewKVMSOperatorDaemon(port int, ipAddress string) *KVMSOperator {
 	dm := new(KVMSOperator)
 
 	dm.EtcdClient = etcd.NewEtcdClient()
+    dm.cliPort = ct.KCLIPort
+	dm.CliHandler = cli.NewServerInit(dm.cliPort, dm.EtcdClient)
 
 	dm.ClusterIp = ipAddress
 	dm.Port = uint16(port)
@@ -80,7 +85,7 @@ func NewKVMSOperatorDaemon(port int, ipAddress string) *KVMSOperator {
 	dm.MapExternalWorkloadConnIdentity = make(map[uint16]ClientConn)
 
 	dm.WgOperatorDaemon = sync.WaitGroup{}
-    kg.Printf("Successfully initialized the KVMSOperator with args => (clusterIp:%s clusterPort:%d", dm.ClusterIp, dm.Port)
+	kg.Printf("Successfully initialized the KVMSOperator with args => (clusterIp:%s clusterPort:%d", dm.ClusterIp, dm.Port)
 
 	return dm
 }
@@ -133,8 +138,11 @@ func KVMSOperatorDaemon(port int, ipAddress string) {
 	// == //
 
 	if K8s.InitK8sClient() {
-        kg.Print("Started the external workload CRD watcher")
+		kg.Print("Started the external workload CRD watcher")
 		go dm.WatchExternalWorkloadSecurityPolicies()
+
+		kg.Print("Started the CLI Handler")
+		go dm.CliHandler.InitServer()
 
 	} else {
 		kg.Print("Kubernetes is not initiliased and Operator is failed!")

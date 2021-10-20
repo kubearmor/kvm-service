@@ -1,0 +1,20 @@
+syntax = "proto3";
+ 
+package clihandler;
+
+option go_package="github.com/kubearmor/KVMService/operator/protobuf";
+
+
+message cliRequest {
+    string kvmName = 1;
+    int32 requestType = 2;
+}
+
+message status {
+    int32 status = 1;
+}
+
+service HandleCli {
+    rpc handleCliRequest (cliRequest) returns (status);
+}
+

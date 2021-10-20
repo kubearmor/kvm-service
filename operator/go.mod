@@ -2,11 +2,15 @@ module github.com/kubearmor/KVMService/operator
 
 go 1.15
 
-replace github.com/coreos/bbolt v1.3.6 => go.etcd.io/bbolt v1.3.6
+replace (
+	github.com/coreos/bbolt v1.3.6 => go.etcd.io/bbolt v1.3.6
+	github.com/kubearmor/KVMService/operator/protobuf => ./protobuf
+)
 
 require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/imdario/mergo v0.3.11 // indirect
+	github.com/kubearmor/KVMService/operator/protobuf v0.0.0-00010101000000-000000000000
 	go.etcd.io/etcd/client/pkg/v3 v3.5.0
 	go.etcd.io/etcd/client/v3 v3.5.0
 	go.uber.org/zap v1.18.1
@@ -14,7 +18,7 @@ require (
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 	golang.org/x/tools v0.1.5 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
-	google.golang.org/grpc v1.38.0
+	google.golang.org/grpc v1.41.0
 	k8s.io/api v0.21.2
 	k8s.io/apimachinery v0.21.2
 	k8s.io/client-go v0.21.2

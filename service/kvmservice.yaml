@@ -63,7 +63,7 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: kvmservice
-        image: quay.io/maddy007_maha/kvms:v7
+        image: kubearmor/kvmservice:v1
         imagePullPolicy: Never
         securityContext:
           privileged: true
