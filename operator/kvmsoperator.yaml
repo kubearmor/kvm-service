@@ -28,9 +28,10 @@ spec:
   ports:
   - port: 32770
     protocol: TCP
+    targetPort: 32770
 ---
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
   name: kvmsoperator
   namespace: kube-system
@@ -58,7 +59,7 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: kvmsoperator
-        image: quay.io/maddy007_maha/kvmop:v4
+        image: kvmsoperator:v3
         imagePullPolicy: Never
         securityContext:
           privileged: true
