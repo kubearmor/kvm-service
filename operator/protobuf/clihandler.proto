@@ -7,11 +7,12 @@ option go_package="github.com/kubearmor/KVMService/operator/protobuf";
 
 message cliRequest {
     string kvmName = 1;
-    int32 requestType = 2;
 }
 
 message status {
-    int32 status = 1;
+    string scriptData = 1;
+    string statusMsg = 2;
+    int32 status = 3;
 }
 
 service HandleCli {

@@ -7,6 +7,8 @@ CURDIR=$(shell pwd)
 build:
 	cd $(CURDIR); go get .
 	cd $(CURDIR); protoc --proto_path=. --go_opt=paths=source_relative --go_out=plugins=grpc:. clihandler.proto
+	cd $(CURDIR); protoc -I=. --go_out . --go_opt paths=source_relative --go-grpc_out . --go-grpc_opt paths=source_relative clihandler.proto
+
 
 .PHONY: clean
 clean:

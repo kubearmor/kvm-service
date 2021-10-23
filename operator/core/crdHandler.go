@@ -14,7 +14,7 @@ import (
 	"time"
 
 	kl "github.com/kubearmor/KVMService/operator/common"
-	gs "github.com/kubearmor/KVMService/operator/genscript"
+	//gs "github.com/kubearmor/KVMService/operator/genscript"
 	kg "github.com/kubearmor/KVMService/operator/log"
 	tp "github.com/kubearmor/KVMService/operator/types"
     ct "github.com/kubearmor/KVMService/operator/constants"
@@ -188,7 +188,7 @@ func (dm *KVMSOperator) WatchExternalWorkloadSecurityPolicies() {
 						dm.ExternalWorkloadSecurityPolicies = append(dm.ExternalWorkloadSecurityPolicies, secPolicy)
 						identity := dm.GenerateExternalWorkloadIdentity(secPolicy.Metadata.Name, secPolicy.Metadata.NodeSelector.MatchLabels)
 						kg.Printf("Generated the identity(%s) for this CRD:%d", secPolicy.Metadata.Name, identity)
-						gs.GenerateEWInstallationScript(dm.Port, dm.ClusterIp, secPolicy.Metadata.Name, identity)
+						//gs.GenerateEWInstallationScript(dm.Port, dm.ClusterIp, secPolicy.Metadata.Name, identity)
 						dm.UpdateIdentityLabelsMap(identity, dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels))
 					}
 				} else if event.Type == "MODIFIED" {

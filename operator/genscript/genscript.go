@@ -7,51 +7,52 @@ import (
 	//"flag"
 	//"fmt"
 	kg "github.com/kubearmor/KVMService/operator/log"
-	"log"
 	"os"
 	"strconv"
 )
 
-var ewFile *os.File
+var (
+	ewFile     *os.File
+	p          GenScriptParams
+	ScriptData string
+)
 
-func addContent(content string) {
-	_, err := ewFile.WriteString(content + "\n")
-	if err != nil {
-		panic(err)
-	}
+type GenScriptParams struct {
+	port      uint16
+	ipAddress string
 }
 
-func GenerateEWInstallationScript(port uint16, ipAddress, externalWorkload string, identity uint16) {
+func InitGenScript(Port uint16, IpAddress string) {
+	p.port = Port
+	p.ipAddress = IpAddress
+}
+
+func addContent(content string) {
+	ScriptData = ScriptData + content + "\n"
+}
+
+func GenerateEWInstallationScript(externalWorkload, identity string) string {
+
 	kg.Printf("Generating the installation script with following args: =>")
-	kg.Printf("ClusterIP:%s ClusterPort:%d ewName:%s identity:%d", ipAddress, port, externalWorkload, identity)
+	kg.Printf("ClusterIP:%s ClusterPort:%d ewName:%s identity:%s", p.ipAddress, p.port, externalWorkload, identity)
+
 	/*
-		externalworkloadPtr := flag.String("external-workload", "", "External workload name/id")
+		ewFileName := "/mnt/gen-script/" + "ew-" + externalWorkload + ".sh"
 
-		flag.Parse()
-		if len(*externalworkloadPtr) == 0 {
-			fmt.Println("Usage: command -external-workload")
-			flag.PrintDefaults()
-			os.Exit(1)
+		var err error
+		// Creating an empty file Using Create() function
+		ewFile, err = os.Create(ewFileName)
+		if err != nil {
+			kg.Printf("Error: File creation file:%s", ewFileName)
+			log.Fatal(err)
 		}
-		ewFileName := "ew-" + *externalworkloadPtr + ".sh"
-	*/
+		defer ewFile.Close()
 
-	ewFileName := "/mnt/gen-script/" + "ew-" + externalWorkload + ".sh"
-
-	var err error
-	// Creating an empty file Using Create() function
-	ewFile, err = os.Create(ewFileName)
-	if err != nil {
-		kg.Printf("File creation failed file:%s", ewFileName)
-		log.Fatal(err)
-	}
-	defer ewFile.Close()
-
-	err = os.Chmod(ewFileName, 0777)
-	if err != nil {
-		kg.Printf("File permissions failed file:%s", ewFileName)
-		log.Fatal(err)
-	}
+		err = os.Chmod(ewFileName, 0777)
+		if err != nil {
+			kg.Printf("File permissions failed file:%s", ewFileName)
+			log.Fatal(err)
+		}*/
 
 	addContent("#!/bin/bash")
 	addContent("set -e")
@@ -59,9 +60,9 @@ func GenerateEWInstallationScript(port uint16, ipAddress, externalWorkload strin
 	addContent("shopt -s extglob")
 	addContent("")
 
-	contentStr := "CLUSTER_PORT=" + strconv.FormatUint(uint64(port), 10)
+	contentStr := "CLUSTER_PORT=" + strconv.FormatUint(uint64(p.port), 10)
 	addContent(contentStr)
-	contentStr = "CLUSTER_IP=" + ipAddress
+	contentStr = "CLUSTER_IP=" + p.ipAddress
 	addContent(contentStr)
 	addContent("")
 
@@ -73,7 +74,8 @@ func GenerateEWInstallationScript(port uint16, ipAddress, externalWorkload strin
 	addContent("fi")
 	addContent("")
 
-	contentStr = "WORKLOAD_IDENTITY=" + strconv.FormatUint(uint64(identity), 10)
+	//contentStr = "WORKLOAD_IDENTITY=" + strconv.FormatUint(uint64(identity), 10)
+	contentStr = "WORKLOAD_IDENTITY=" + identity
 	addContent(contentStr)
 	addContent("")
 
@@ -126,6 +128,7 @@ func GenerateEWInstallationScript(port uint16, ipAddress, externalWorkload strin
 
 	addContent("sudo docker run --name feeder-service $FEEDER_OPTS $FEEDER_IMG_PATH ./bin/feeder-service")
 
-	kg.Printf("File is successfully generated => %s", ewFileName)
+	kg.Printf("Script data is successfully generated!")
 
+	return ScriptData
 }

@@ -14,6 +14,7 @@ import (
 	cli "github.com/kubearmor/KVMService/operator/clihandler"
 	ct "github.com/kubearmor/KVMService/operator/constants"
 	etcd "github.com/kubearmor/KVMService/operator/etcd"
+	gs "github.com/kubearmor/KVMService/operator/genscript"
 	kg "github.com/kubearmor/KVMService/operator/log"
 	tp "github.com/kubearmor/KVMService/operator/types"
 	"google.golang.org/grpc"
@@ -47,7 +48,7 @@ type KVMSOperator struct {
 	Port      uint16
 	ClusterIp string
 
-    cliPort string
+	cliPort string
 	// External workload policies and mappers
 	ExternalWorkloadSecurityPolicies     []tp.ExternalWorkloadSecurityPolicy
 	ExternalWorkloadSecurityPoliciesLock *sync.RWMutex
@@ -68,7 +69,7 @@ func NewKVMSOperatorDaemon(port int, ipAddress string) *KVMSOperator {
 	dm := new(KVMSOperator)
 
 	dm.EtcdClient = etcd.NewEtcdClient()
-    dm.cliPort = ct.KCLIPort
+	dm.cliPort = ct.KCLIPort
 	dm.CliHandler = cli.NewServerInit(dm.cliPort, dm.EtcdClient)
 
 	dm.ClusterIp = ipAddress
@@ -136,6 +137,7 @@ func KVMSOperatorDaemon(port int, ipAddress string) {
 	time.Sleep(time.Second * 1)
 
 	// == //
+	gs.InitGenScript(dm.Port, dm.ClusterIp)
 
 	if K8s.InitK8sClient() {
 		kg.Print("Started the external workload CRD watcher")
