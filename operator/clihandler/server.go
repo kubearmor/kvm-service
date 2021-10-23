@@ -18,12 +18,16 @@ type Server struct {
 	port       string
 }
 
+type CLIServer struct {
+	pb.HandleCliServer
+}
+
 func NewServerInit(portVal string, Etcd *etcd.EtcdClient) *Server {
 	kg.Printf("Initiliazing the CLIHandler => Port:%v", portVal)
 	return &Server{port: portVal, EtcdClient: Etcd}
 }
 
-func (s *Server) HandleCliRequest(ctx context.Context, request *pb.CliRequest) (*pb.Status, error) {
+func (c *CLIServer) HandleCliRequest(ctx context.Context, request *pb.CliRequest) (*pb.Status, error) {
 	kg.Printf("Recieved the request KVMName:%s request:%d\n", request.KvmName, request.RequestType)
 	return &pb.Status{Status: 0}, nil
 }
@@ -63,7 +67,7 @@ func (s *Server) InitServer() error {
 		kg.Err("Failed to create CLIHandler")
 	}
 	reflection.Register(gRPCServer)
-	pb.RegisterHandleCliServer(gRPCServer, &Server{})
+	pb.RegisterHandleCliServer(gRPCServer, &CLIServer{})
 
 	err = gRPCServer.Serve(tcpConn)
 	if err != nil {
