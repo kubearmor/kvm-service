@@ -35,7 +35,6 @@ func NewServerInit(portVal string, Etcd *etcd.EtcdClient) *Server {
 
 func (c *CLIServer) HandleCliRequest(ctx context.Context, request *pb.CliRequest) (*pb.Status, error) {
 	kg.Printf("Recieved the request KVMName:%s\n", request.KvmName)
-
 	kvPair, err := cs.EtcdClient.EtcdGet(context.Background(), ct.KvmOprEWNameToIdentity+request.KvmName)
 	if err != nil {
 		log.Fatal(err)
