@@ -6,7 +6,7 @@ To install minikube in the host machine run the installation script using the be
 
 ```
 $ cd KVMService/getting-started/minikube/
-$ /install_minikube.sh
+$ ./install_minikube.sh
 ```
 
 ## Start minikube
