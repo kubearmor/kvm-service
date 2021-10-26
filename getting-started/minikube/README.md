@@ -148,7 +148,7 @@ Status:
                 loadbalancer emulator: no errors
 ```
 
-## Download installation script to host machine karmor
+## Download installation script to host machine using karmor
 With the configured name, download the installation script to host machine using below karmor command.
 ```
 $ ./karmor vm -n external-workload-01
