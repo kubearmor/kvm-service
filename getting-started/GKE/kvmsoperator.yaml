@@ -28,9 +28,10 @@ spec:
   ports:
   - port: 32770
     protocol: TCP
+    targetPort: 32770
 ---
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
   name: kvmsoperator
   namespace: kube-system
@@ -58,20 +59,14 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: kvmsoperator
-        image: accuknox/kvmsoperator:v0.1
-        imagePullPolicy: IfNotPresent
+        image: seswarrajan/kvmsoperator:latest
+        imagePullPolicy: Always
         securityContext:
           privileged: true
-        args: ["-port=32769", "-ipAddress='1.1.1.1'"]
+        args: ["-port=40400", "-ipAddress='35.238.22.7'"]
         env:
-        - name: SERVER_CRT
-          value: "/etc/kubernetes/pki/etcd/server.crt"
-        - name: SERVER_KEY
-          value: "/etc/kubernetes/pki/etcd/server.key"
-        - name: CA_CRT
-          value: "/etc/kubernetes/pki/etcd/ca.crt"
-        - name: ENDPOINT
-          value: "https://127.0.0.1:2379"
+        - name: ENDPOINTS
+          value: "http://10.92.14.153:2379"
         volumeMounts:
         - name: docker-sock-path # docker (read-only)
           mountPath: /var/run/docker.sock
@@ -84,8 +79,6 @@ spec:
           readOnly: true
         - name: sys-fs-bpf-path # BPF (read-write)
           mountPath: /sys/fs/bpf
-        - name: etc-kubernetes-certs # BPF (read-write)
-          mountPath: /etc/kubernetes/pki/etcd/
         - name: sys-kernel-debug-path # BPF (read-write)
           mountPath: /sys/kernel/debug
             # - name: etc-apparmor-d-path # AppArmor (read-write)
@@ -123,10 +116,6 @@ spec:
       - name: sys-fs-bpf-path # BPF
         hostPath:
           path: /sys/fs/bpf
-          type: Directory
-      - name: etc-kubernetes-certs
-        hostPath:
-          path: /etc/kubernetes/pki/etcd/
           type: Directory
       - name: sys-kernel-debug-path # BPF
         hostPath:

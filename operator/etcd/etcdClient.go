@@ -11,11 +11,12 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	tp "github.com/kubearmor/KVMService/operator/types"
 	"go.etcd.io/etcd/client/pkg/v3/transport"
-	"go.etcd.io/etcd/client/v3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 var kew_crds []string
@@ -29,10 +30,11 @@ type EtcdClient struct {
 //func NewEtcdClient() *clientv3.Client {
 func NewEtcdClient() *EtcdClient {
 	// TODO: Need to fix as constant variables
-	certFile := "/etc/kubernetes/pki/etcd/server.crt"
-	keyFile := "/etc/kubernetes/pki/etcd/server.key"
-	caFile := "/etc/kubernetes/pki/etcd/ca.crt"
-	endPoints := "https://10.0.2.15:2379"
+	certFile := os.Getenv("SERVER_CRT")
+	keyFile := os.Getenv("SERVER_KEY")
+	caFile := os.Getenv("CA_CRT")
+	endPoints := os.Getenv("ENDPOINT")
+
 	ttl := int64(5)
 
 	tlsInfo := transport.TLSInfo{
@@ -64,7 +66,7 @@ func NewEtcdClient() *EtcdClient {
 }
 
 func (cli *EtcdClient) EtcdPutWithTTL(ctx context.Context, key, value string) error {
-    _, err := cli.etcdClient.Put(context.TODO(), key, value, clientv3.WithLease(cli.leaseResponse.ID))
+	_, err := cli.etcdClient.Put(context.TODO(), key, value, clientv3.WithLease(cli.leaseResponse.ID))
 	if err != nil {
 		log.Fatal(err)
 		return err
@@ -124,10 +126,10 @@ func (cli *EtcdClient) keepAliveEtcdConnection() {
 }
 
 func tempNewEtcdClient() {
-	certFile := "/etc/kubernetes/pki/etcd/server.crt"
-	keyFile := "/etc/kubernetes/pki/etcd/server.key"
-	caFile := "/etc/kubernetes/pki/etcd/ca.crt"
-	endPoints := "https://10.0.2.15:2379"
+	certFile := os.Getenv("SERVER_CRT")
+	keyFile := os.Getenv("SERVER_KEY")
+	caFile := os.Getenv("CA_CRT")
+	endPoints := os.Getenv("ENDPOINT")
 
 	tlsInfo := transport.TLSInfo{
 		CertFile:      certFile,
