@@ -10,13 +10,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	ct "github.com/kubearmor/KVMService/operator/constants"
 	kg "github.com/kubearmor/KVMService/operator/log"
 	tp "github.com/kubearmor/KVMService/operator/types"
 	"go.etcd.io/etcd/client/pkg/v3/transport"
-	"go.etcd.io/etcd/client/v3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 var kew_crds []string
@@ -116,10 +117,10 @@ func (cli *EtcdClient) keepAliveEtcdConnection() {
 }
 
 func tempNewEtcdClient() {
-	certFile := "/etc/kubernetes/pki/etcd/server.crt"
-	keyFile := "/etc/kubernetes/pki/etcd/server.key"
-	caFile := "/etc/kubernetes/pki/etcd/ca.crt"
-	endPoints := "https://10.0.2.15:2379"
+	certFile := os.Getenv("SERVER_CRT")
+	keyFile := os.Getenv("SERVER_KEY")
+	caFile := os.Getenv("CA_CRT")
+	endPoints := os.Getenv("ENDPOINT")
 
 	tlsInfo := transport.TLSInfo{
 		CertFile:      certFile,

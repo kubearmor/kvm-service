@@ -59,11 +59,20 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: kvmsoperator
-        image: kvmsoperator:v3
-        imagePullPolicy: Never
+        image: accuknox/kvmsoperator:v0.1
+        imagePullPolicy: IfNotPresent
         securityContext:
           privileged: true
-        args: ["-port=40400", "-ipAddress='192.168.100.112'"]
+        args: ["-port=32769", "-ipAddress='1.1.1.1'"]
+        env:
+        - name: SERVER_CRT
+          value: "/etc/kubernetes/pki/etcd/server.crt"
+        - name: SERVER_KEY
+          value: "/etc/kubernetes/pki/etcd/server.key"
+        - name: CA_CRT
+          value: "/etc/kubernetes/pki/etcd/ca.crt"
+        - name: ENDPOINT
+          value: "https://127.0.0.1:2379"
         volumeMounts:
         - name: docker-sock-path # docker (read-only)
           mountPath: /var/run/docker.sock

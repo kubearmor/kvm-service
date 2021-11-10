@@ -104,22 +104,20 @@ func (s *Server) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 	var loop bool
 	loop = true
 
-	kg.Print("Started Policy Streamer")
+	kg.Print("Started Policy Streamer\n")
 
 	go func() {
 		for loop {
-			select {
-			case <-stream.Context().Done():
-				closeEvent := tp.K8sKubeArmorHostPolicyEventWithIdentity{}
-				closeEvent.Identity = GetIdentityFromContext(stream.Context())
-				closeEvent.CloseConnection = true
-				kg.Printf("Done context received for identity %d", closeEvent.Identity)
-				kg.Printf("Removing the identity from the ETCD")
-				s.UpdateETCDLabelToIdentitiesMaps(closeEvent.Identity)
-
-				loop = false
-				PolicyChan <- closeEvent
-			}
+			// select {
+			// case <-stream.Context().Done():
+			<-stream.Context().Done()
+			closeEvent := tp.K8sKubeArmorHostPolicyEventWithIdentity{}
+			closeEvent.Identity = GetIdentityFromContext(stream.Context())
+			closeEvent.CloseConnection = true
+			kg.Errf("Closing client connections for identity %d\n", closeEvent.Identity)
+			loop = false
+			PolicyChan <- closeEvent
+			//}
 		}
 	}()
 
@@ -208,7 +206,7 @@ func (s *Server) InitServer() error {
 		kg.Printf("Error listening on port %s", s.port)
 	} else {
 		kg.Printf("Successfully KVMServer Listening on port %s", s.port)
-	}
+ }
 
 	// Start gRPC server and register for protobuf
 	gRPCServer := grpc.NewServer()
