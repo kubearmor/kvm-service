@@ -11,7 +11,10 @@ import (
 	"syscall"
 	"time"
 
+	cli "github.com/kubearmor/KVMService/operator/clihandler"
+	ct "github.com/kubearmor/KVMService/operator/constants"
 	etcd "github.com/kubearmor/KVMService/operator/etcd"
+	gs "github.com/kubearmor/KVMService/operator/genscript"
 	kg "github.com/kubearmor/KVMService/operator/log"
 	tp "github.com/kubearmor/KVMService/operator/types"
 	"google.golang.org/grpc"
@@ -38,12 +41,14 @@ func init() {
 // KVMSOperator Structure
 type KVMSOperator struct {
 	EtcdClient *etcd.EtcdClient
+	CliHandler *cli.Server
 
 	EnableExternalWorkloadPolicy bool
 
 	Port      uint16
 	ClusterIp string
 
+	cliPort string
 	// External workload policies and mappers
 	ExternalWorkloadSecurityPolicies     []tp.ExternalWorkloadSecurityPolicy
 	ExternalWorkloadSecurityPoliciesLock *sync.RWMutex
@@ -52,7 +57,7 @@ type KVMSOperator struct {
 	MapEWNameToIdentity map[string]uint16
 
 	MapIdentityToLabel              map[uint16]string
-	MapLabelToIdentity              map[string][]uint16
+	MapLabelToIdentities            map[string][]uint16
 	MapExternalWorkloadConnIdentity map[uint16]ClientConn
 
 	// WgOperatorDaemon Handler
@@ -64,6 +69,8 @@ func NewKVMSOperatorDaemon(port int, ipAddress string) *KVMSOperator {
 	dm := new(KVMSOperator)
 
 	dm.EtcdClient = etcd.NewEtcdClient()
+	dm.cliPort = ct.KCLIPort
+	dm.CliHandler = cli.NewServerInit(dm.cliPort, dm.EtcdClient)
 
 	dm.ClusterIp = ipAddress
 	dm.Port = uint16(port)
@@ -71,7 +78,7 @@ func NewKVMSOperatorDaemon(port int, ipAddress string) *KVMSOperator {
 	dm.ExternalWorkloadSecurityPoliciesLock = new(sync.RWMutex)
 
 	dm.MapIdentityToLabel = make(map[uint16]string)
-	dm.MapLabelToIdentity = make(map[string][]uint16)
+	dm.MapLabelToIdentities = make(map[string][]uint16)
 
 	dm.MapIdentityToEWName = make(map[uint16]string)
 	dm.MapEWNameToIdentity = make(map[string]uint16)
@@ -79,6 +86,7 @@ func NewKVMSOperatorDaemon(port int, ipAddress string) *KVMSOperator {
 	dm.MapExternalWorkloadConnIdentity = make(map[uint16]ClientConn)
 
 	dm.WgOperatorDaemon = sync.WaitGroup{}
+	kg.Printf("Successfully initialized the KVMSOperator with args => (clusterIp:%s clusterPort:%d", dm.ClusterIp, dm.Port)
 
 	return dm
 }
@@ -93,7 +101,7 @@ func (dm *KVMSOperator) DestroyKVMSOperator() {
 	kg.Print("Waiting for remaining routine terminations")
 
 	kg.Print("Deleting the external worklaods keys from etcd")
-	dm.EtcdClient.EtcdDelete(context.TODO(), "/externalworkloads/")
+	dm.EtcdClient.EtcdDelete(context.TODO(), ct.KvmOprLabelToIdentities)
 
 	dm.WgOperatorDaemon.Wait()
 }
@@ -129,11 +137,14 @@ func KVMSOperatorDaemon(port int, ipAddress string) {
 	time.Sleep(time.Second * 1)
 
 	// == //
+	gs.InitGenScript(dm.Port, dm.ClusterIp)
 
 	if K8s.InitK8sClient() {
-		if dm.EnableExternalWorkloadPolicy {
-			go dm.WatchExternalWorkloadSecurityPolicies()
-		}
+		kg.Print("Started the external workload CRD watcher")
+		go dm.WatchExternalWorkloadSecurityPolicies()
+
+		kg.Print("Started the CLI Handler")
+		go dm.CliHandler.InitServer()
 
 	} else {
 		kg.Print("Kubernetes is not initiliased and Operator is failed!")

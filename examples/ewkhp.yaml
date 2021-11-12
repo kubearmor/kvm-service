@@ -5,11 +5,10 @@ metadata:
 spec:
   nodeSelector:
     matchLabels:
-      abc: yz
-        #kubearmorexternalworkloads.security.kubearmor.com: external-workload-01
+      abc: xyz
   severity: 5
   file:
     matchPaths:
     - path: /etc/passwd # cat /etc/passwd
   action:
-    Audit
+    Block

@@ -5,7 +5,6 @@ package core
 
 import (
 	"bytes"
-	//	"context"
 	"crypto/tls"
 	"encoding/json"
 	"flag"
@@ -17,14 +16,13 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	//"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	rest "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	kl "github.com/kubearmor/KVMService/operator/common"
 	kg "github.com/kubearmor/KVMService/operator/log"
-	//tp "github.com/kubearmor/KVMService/operator/types"
+	ct "github.com/kubearmor/KVMService/operator/constants"
 )
 
 // ================= //
@@ -57,13 +55,13 @@ func NewK8sHandler() *K8sHandler {
 	if val, ok := os.LookupEnv("KUBERNETES_SERVICE_HOST"); ok {
 		kh.K8sHost = val
 	} else {
-		kh.K8sHost = "127.0.0.1"
+		kh.K8sHost = ct.LocalHostIPAddress
 	}
 
 	if val, ok := os.LookupEnv("KUBERNETES_PORT_443_TCP_PORT"); ok {
 		kh.K8sPort = val
 	} else {
-		kh.K8sPort = "8001" // kube-proxy
+		kh.K8sPort = ct.KubeProxyK8sPort // kube-proxy
 	}
 
 	kh.HTTPClient = &http.Client{

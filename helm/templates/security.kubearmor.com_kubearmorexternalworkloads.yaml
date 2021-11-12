@@ -10,12 +10,12 @@ metadata:
 spec:
   group: security.kubearmor.com
   names:
-    kind: KubeArmorExternalWorkloadPolicy
-    listKind: KubeArmorExternalWorkloadPolicyList
+    kind: KubeArmorExternalWorkload
+    listKind: KubeArmorExternalWorkloadList
     plural: kubearmorexternalworkloads
     shortNames:
     - kew
-    singular: kubearmorexternalworkloadpolicy
+    singular: kubearmorexternalworkload
   scope: Cluster
   versions:
   - name: v1

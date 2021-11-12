@@ -5,10 +5,9 @@ package core
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
-	"sort"
+	//"sort"
 	"strings"
 
 	//"math/rand"
@@ -20,6 +19,7 @@ import (
 	kg "github.com/kubearmor/KVMService/service/log"
 	ks "github.com/kubearmor/KVMService/service/server"
 	tp "github.com/kubearmor/KVMService/service/types"
+	ct "github.com/kubearmor/KVMService/service/constants"
 )
 
 func Find(slice []uint16, val uint16) (int, bool) {
@@ -31,10 +31,10 @@ func Find(slice []uint16, val uint16) (int, bool) {
 	return -1, false
 }
 
-func (dm *KVMS) GetAllEtcdEWLabels() {
-	fmt.Println("Getting the External workload labels from ETCD")
+func (dm *KVMS) mGetAllEtcdEWLabels() {
+	kg.Print("Getting the External workload labels from ETCD")
 
-	etcdLabels, err := dm.EtcdClient.EtcdGet(context.TODO(), "/externalworkloads")
+	etcdLabels, err := dm.EtcdClient.EtcdGet(context.TODO(), ct.KvmOprLabelToIdentities)
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -46,52 +46,95 @@ func (dm *KVMS) GetAllEtcdEWLabels() {
 		dm.MapEtcdEWIdentityLabels[identity] = value
 		dm.EtcdEWLabels = append(dm.EtcdEWLabels, value)
 
-		idNum, _ := strconv.ParseUint(identity, 0, 10)
-		_, found := Find(dm.MapLabelToIdentity[value], uint16(idNum))
+		idNum, _ := strconv.ParseUint(identity, 0, 16)
+		_, found := Find(dm.MapLabelToIdentities[value], uint16(idNum))
 		if !found {
-			dm.MapLabelToIdentity[value] = append(dm.MapLabelToIdentity[value], uint16(idNum))
+			dm.MapLabelToIdentities[value] = append(dm.MapLabelToIdentities[value], uint16(idNum))
 		}
 	}
-
-	fmt.Println("MDEBUG:", dm.EtcdEWLabels)
-	fmt.Println("MDEBUG:", dm.MapEtcdEWIdentityLabels)
-	fmt.Println("MDEBUG:", dm.MapLabelToIdentity)
 }
 
-// ================================= //
-// == Host Security Policy Update == //
-// ================================= //
+func (dm *KVMS) GetAllEtcdEWLabels() {
+	kg.Print("Getting the External workload labels from ETCD")
+	etcdLabels, err := dm.EtcdClient.EtcdGet(context.TODO(), ct.KvmOprLabelToIdentities)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	for key, _ := range etcdLabels {
+		s := strings.Split(key, "/")
+		label := s[len(s)-1]
+		dm.EtcdEWLabels = append(dm.EtcdEWLabels, label)
+	}
+
+	for _, label := range dm.EtcdEWLabels {
+		data, err := dm.EtcdClient.EtcdGetRaw(context.TODO(), ct.KvmOprLabelToIdentities+label)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+
+		for _, ev := range data.Kvs {
+			var arr []uint16
+			err := json.Unmarshal(ev.Value, &arr)
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
+			s := strings.Split(string(ev.Key), "/")
+			dm.MapLabelToIdentities[s[len(s)-1]] = arr
+		}
+	}
+}
+
 func (dm *KVMS) PassOverToKVMSAgent(event tp.K8sKubeArmorHostPolicyEvent, identities []uint16) {
 	eventWithIdentity := tp.K8sKubeArmorHostPolicyEventWithIdentity{}
-	fmt.Println(event, identities)
 
 	eventWithIdentity.Event = event
 	eventWithIdentity.CloseConnection = false
 	for _, identity := range identities {
 		eventWithIdentity.Identity = identity
+		kg.Printf("Sending the event towards the KVMAgent of identity:%v\n", identity)
 		ks.PolicyChan <- eventWithIdentity
 	}
 }
 
 func (dm *KVMS) GetIdentityFromLabelPool(label string) []uint16 {
-	fmt.Println(label)
-	return dm.MapLabelToIdentity[label]
+	kg.Printf("Getting the identity from the pool => label:%s\n", label)
+	return dm.MapLabelToIdentities[label]
 }
 
+// ================================= //
+// == Host Security Policy Update == //
+// ================================= //
 // UpdateHostSecurityPolicies Function
-func (dm *KVMS) UpdateHostSecurityPolicies(event tp.K8sKubeArmorHostPolicyEvent, labels []string) {
+func (dm *KVMS) UpdateHostSecurityPolicies(event tp.K8sKubeArmorHostPolicyEvent) {
 	var identities []uint16
-	dm.GetAllEtcdEWLabels()
+	var labels []string
+	secPolicy := tp.HostSecurityPolicy{}
 
+	secPolicy.Metadata = map[string]string{}
+	secPolicy.Metadata["policyName"] = event.Object.Metadata.Name
+
+	if err := kl.Clone(event.Object.Spec, &secPolicy.Spec); err != nil {
+		log.Fatal("Failed to clone a spec")
+	}
+
+	for k, v := range secPolicy.Spec.NodeSelector.MatchLabels {
+		labels = append(labels, k+"="+v)
+	}
+
+	dm.GetAllEtcdEWLabels()
 	if dm.EtcdEWLabels == nil {
-		fmt.Println("No etcd keys")
+		kg.Err("No etcd keys")
 		return
 	}
 
 	if kl.MatchIdentities(labels, dm.EtcdEWLabels) {
 		for _, label := range labels {
 			identities = dm.GetIdentityFromLabelPool(label)
-			fmt.Println("External workload CRD matched with policy")
+			kg.Printf("External workload CRD matched with policy identity:%+v label:%s\n", identities, label)
 			if len(identities) > 0 {
 				dm.PassOverToKVMSAgent(event, identities)
 			}
@@ -102,7 +145,7 @@ func (dm *KVMS) UpdateHostSecurityPolicies(event tp.K8sKubeArmorHostPolicyEvent,
 // WatchHostSecurityPolicies Function
 func (dm *KVMS) WatchHostSecurityPolicies() {
 	for {
-		if !K8s.CheckCustomResourceDefinition("kubearmorhostpolicies") {
+		if !K8s.CheckCustomResourceDefinition(ct.KhpCRDName) {
 			time.Sleep(time.Second * 1)
 			continue
 		}
@@ -123,39 +166,8 @@ func (dm *KVMS) WatchHostSecurityPolicies() {
 					continue
 				}
 
-				dm.HostSecurityPoliciesLock.Lock()
-
-				// create a host security policy
 				kg.Print("Host policy got detected")
-
-				secPolicy := tp.HostSecurityPolicy{}
-
-				secPolicy.Metadata = map[string]string{}
-				secPolicy.Metadata["policyName"] = event.Object.Metadata.Name
-
-				if err := kl.Clone(event.Object.Spec, &secPolicy.Spec); err != nil {
-					log.Fatal("Failed to clone a spec")
-				}
-
-				// add identities
-
-				secPolicy.Spec.NodeSelector.Identities = []string{}
-
-				for k, v := range secPolicy.Spec.NodeSelector.MatchLabels {
-					secPolicy.Spec.NodeSelector.Identities = append(secPolicy.Spec.NodeSelector.Identities, k+"="+v)
-				}
-
-				sort.Slice(secPolicy.Spec.NodeSelector.Identities, func(i, j int) bool {
-					return secPolicy.Spec.NodeSelector.Identities[i] < secPolicy.Spec.NodeSelector.Identities[j]
-				})
-
-				dm.HostSecurityPoliciesLock.Unlock()
-
-				//dm.Logger.Printf("Detected a Host Security Policy (%s/%s)", strings.ToLower(event.Type), secPolicy.Metadata["policyName"])
-
-				// apply security policies to a host
-				log.Print("Host Policy Labels:", secPolicy.Spec.NodeSelector.Identities)
-				dm.UpdateHostSecurityPolicies(event, secPolicy.Spec.NodeSelector.Identities)
+				dm.UpdateHostSecurityPolicies(event)
 			}
 		}
 	}

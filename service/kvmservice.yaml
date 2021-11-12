@@ -26,17 +26,22 @@ spec:
   selector:
     kvmservice-app: kvmservice
   ports:
-  - port: 32769
-    protocol: TCP
+  - port: 4040
+  type: LoadBalancer
+  externalIPs:
+  - 192.168.100.112
+    #192.168.100.112/24
 ---
 apiVersion: apps/v1
-kind: DaemonSet
+  #kind: DaemonSet
+kind: Deployment
 metadata:
   name: kvmservice
   namespace: kube-system
   labels:
     kvmservice-app: kvmservice
 spec:
+  replicas: 1
   selector:
     matchLabels:
       kvmservice-app: kvmservice
@@ -58,13 +63,14 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: kvmservice
-        image: quay.io/maddy007_maha/kvmservice:v3
+        image: kubearmor/kvmservice:v1
         imagePullPolicy: Never
         securityContext:
           privileged: true
-        args: ["-port=32769", "-ipAddress='1.1.1.1'"]
+        args: ["-port=40400", "-ipAddress='192.168.100.112'"]
         ports:
-        - containerPort: 32769
+        - containerPort: 40400
+          hostPort: 0
         volumeMounts:
         - name: docker-sock-path # docker (read-only)
           mountPath: /var/run/docker.sock

@@ -47,19 +47,8 @@ func main() {
 		return
 	}
 
-	/*
-		// options (string)
-		clusterPtr := flag.String("cluster", "", "cluster name")
-		gRPCPtr := flag.String("gRPC", "32767", "gRPC port number")
-		logPathPtr := flag.String("logPath", "none", "log file path, {path|stdout|none}")
-		logFilterPtr := flag.String("logFilter", "policy", "Filter for what kinds of alerts and logs to receive, {policy|system|all}")
-
-		// options (boolean)
-		enableEnforcerPerPodPtr := flag.Bool("enableEnforcerPerPod", false, "enabling the enforcer per pod")
-		//enableExternalWorkloadPolicyPtr := true
-	*/
-	portPtr := flag.Int("port", 0, "Cluster Port")
-	ipAddressPtr := flag.String("ipAddress", "", "Cluster Address")
+  portPtr := flag.Int("port", 40400, "Cluster Port")
+  ipAddressPtr := flag.String("ipAddress", "", "Cluster Address")
 
 	flag.Parse()
 
