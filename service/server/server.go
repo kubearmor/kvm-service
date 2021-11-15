@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"strings"
 
+	ct "github.com/kubearmor/KVMService/service/constants"
 	etcd "github.com/kubearmor/KVMService/service/etcd"
 	kg "github.com/kubearmor/KVMService/service/log"
 	pb "github.com/kubearmor/KVMService/service/protobuf"
 	tp "github.com/kubearmor/KVMService/service/types"
-	ct "github.com/kubearmor/KVMService/service/constants"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -59,8 +59,12 @@ func GetIdentityFromContext(ctx context.Context) uint16 {
 }
 
 func (s *Server) UpdateETCDLabelToIdentitiesMaps(identity uint16) {
-	////////
-	EtcdClient.EtcdDelete(context.Background(), ct.KvmSvcIdentitiToPodIps+strconv.Itoa(int(identity)))
+
+	err := EtcdClient.EtcdDelete(context.Background(), ct.KvmSvcIdentitiToPodIps+strconv.Itoa(int(identity)))
+	if err != nil {
+		kg.Err(err.Error())
+		return
+	}
 
 	labelKV, err := EtcdClient.EtcdGet(context.Background(), ct.KvmOprIdentityToLabel+strconv.Itoa(int(identity)))
 	if err != nil {
@@ -193,7 +197,11 @@ func (s *Server) RegisterAgentIdentity(ctx context.Context, in *pb.AgentIdentity
 	identity = uint16(value)
 	kg.Printf("New connection recieved RegisterAgentIdentity: %v podIp: %v", identity, podIp)
 
-	EtcdClient.EtcdPutWithTTL(context.Background(), ct.KvmSvcIdentitiToPodIps+in.Identity, podIp)
+	err := EtcdClient.EtcdPutWithTTL(context.Background(), ct.KvmSvcIdentitiToPodIps+in.Identity, podIp)
+	if err != nil {
+		kg.Err(err.Error())
+		return &pb.Status{Status: -1}, err
+	}
 
 	return &pb.Status{Status: 0}, nil
 }
@@ -206,7 +214,7 @@ func (s *Server) InitServer() error {
 		kg.Printf("Error listening on port %s", s.port)
 	} else {
 		kg.Printf("Successfully KVMServer Listening on port %s", s.port)
- }
+	}
 
 	// Start gRPC server and register for protobuf
 	gRPCServer := grpc.NewServer()
