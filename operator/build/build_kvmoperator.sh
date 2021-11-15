@@ -32,12 +32,12 @@ fi
 # remove old images
 docker images | grep kvmsoperator | awk '{print $3}' | xargs -I {} docker rmi -f {} 2> /dev/null
 
-echo "[INFO] Removed existing kvmsoperator/kvmsoperator images"
+echo "[INFO] Removed existing accuknox/kvmsoperator images"
 
 # remove old files (just in case)
 $ARMOR_HOME/build/clean_source_files.sh
 
-echo "[INFO] Removed source files just in case"
+echo "[INFO] Removed existing source files"
 
 # copy files to build
 $ARMOR_HOME/build/copy_source_files.sh
@@ -45,14 +45,14 @@ $ARMOR_HOME/build/copy_source_files.sh
 echo "[INFO] Copied new source files"
 
 # build a new image
-echo "[INFO] Building kvmsoperator/kvmsoperator:$VERSION"
+echo "[INFO] Building accuknox/kvmsoperator:$VERSION"
 docker build -t kvmsoperator/kvmsoperator:$VERSION  . -f $ARMOR_HOME/build/Dockerfile.kvmsoperator
 
 if [ $? != 0 ]; then
-    echo "[FAILED] Failed to build kvmsoperator/kvmsoperator:$VERSION"
+    echo "[FAILED] Failed to build accuknox/kvmsoperator:$VERSION"
     exit 1
 else
-    echo "[PASSED] Built kvmsoperator/kvmsoperator:$VERSION"
+    echo "[PASSED] Built accuknox/kvmsoperator:$VERSION"
 fi
 
 # remove copied files

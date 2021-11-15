@@ -4,15 +4,12 @@
 package genscript
 
 import (
-	//"flag"
-	//"fmt"
-	kg "github.com/kubearmor/KVMService/operator/log"
-	"os"
 	"strconv"
+
+	kg "github.com/kubearmor/KVMService/operator/log"
 )
 
 var (
-	ewFile     *os.File
 	p          GenScriptParams
 	ScriptData string
 )
@@ -33,28 +30,10 @@ func addContent(content string) {
 
 func GenerateEWInstallationScript(externalWorkload, identity string) string {
 
-    ScriptData = ""
+	ScriptData = ""
 
 	kg.Printf("Generating the installation script =>")
 	kg.Printf("ClusterIP:%s ClusterPort:%d ewName:%s identity:%s", p.ipAddress, p.port, externalWorkload, identity)
-
-	/*
-		ewFileName := "/mnt/gen-script/" + "ew-" + externalWorkload + ".sh"
-
-		var err error
-		// Creating an empty file Using Create() function
-		ewFile, err = os.Create(ewFileName)
-		if err != nil {
-			kg.Printf("Error: File creation file:%s", ewFileName)
-			log.Fatal(err)
-		}
-		defer ewFile.Close()
-
-		err = os.Chmod(ewFileName, 0777)
-		if err != nil {
-			kg.Printf("File permissions failed file:%s", ewFileName)
-			log.Fatal(err)
-		}*/
 
 	addContent("#!/bin/bash")
 	addContent("set -e")
@@ -76,7 +55,6 @@ func GenerateEWInstallationScript(externalWorkload, identity string) string {
 	addContent("fi")
 	addContent("")
 
-	//contentStr = "WORKLOAD_IDENTITY=" + strconv.FormatUint(uint64(identity), 10)
 	contentStr = "WORKLOAD_IDENTITY=" + identity
 	addContent(contentStr)
 	addContent("")

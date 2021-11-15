@@ -29,6 +29,7 @@ spec:
   - port: 32770
     protocol: TCP
     targetPort: 32770
+  type: LoadBalancer
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -63,16 +64,7 @@ spec:
         imagePullPolicy: IfNotPresent
         securityContext:
           privileged: true
-        args: ["-port=32769", "-ipAddress='1.1.1.1'"]
-        env:
-        - name: SERVER_CRT
-          value: "/etc/kubernetes/pki/etcd/server.crt"
-        - name: SERVER_KEY
-          value: "/etc/kubernetes/pki/etcd/server.key"
-        - name: CA_CRT
-          value: "/etc/kubernetes/pki/etcd/ca.crt"
-        - name: ENDPOINT
-          value: "https://127.0.0.1:2379"
+        args: ["-port=32770"]
         volumeMounts:
         - name: docker-sock-path # docker (read-only)
           mountPath: /var/run/docker.sock
@@ -85,8 +77,6 @@ spec:
           readOnly: true
         - name: sys-fs-bpf-path # BPF (read-write)
           mountPath: /sys/fs/bpf
-        - name: etc-kubernetes-certs # BPF (read-write)
-          mountPath: /etc/kubernetes/pki/etcd/
         - name: sys-kernel-debug-path # BPF (read-write)
           mountPath: /sys/kernel/debug
             # - name: etc-apparmor-d-path # AppArmor (read-write)
@@ -94,9 +84,6 @@ spec:
         - name: os-release-path # OS (read-only)
           mountPath: /media/root/etc/os-release
           readOnly: true
-        - name: install-scripts-ew
-          mountPath: /mnt/gen-script
-          readOnly: false
         livenessProbe:
           exec:
             command:
@@ -127,14 +114,6 @@ spec:
       - name: sys-fs-bpf-path # BPF
         hostPath:
           path: /sys/fs/bpf
-          type: Directory
-      - name: install-scripts-ew
-        hostPath:
-          path: /mnt/gen-script
-          type: Directory
-      - name: etc-kubernetes-certs
-        hostPath:
-          path: /etc/kubernetes/pki/etcd/
           type: Directory
       - name: sys-kernel-debug-path # BPF
         hostPath:

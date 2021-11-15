@@ -7,17 +7,16 @@ package etcdClient
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"log"
-	"os"
 	"time"
 
 	ct "github.com/kubearmor/KVMService/operator/constants"
 	kg "github.com/kubearmor/KVMService/operator/log"
 	tp "github.com/kubearmor/KVMService/operator/types"
-	"go.etcd.io/etcd/client/pkg/v3/transport"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 var kew_crds []string
@@ -28,7 +27,40 @@ type EtcdClient struct {
 	leaseResponse *clientv3.LeaseGrantResponse
 }
 
+func getEtcdEndPoint() string {
+
+	var etcdClusterIP string
+
+	// creates the in-cluster config
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		kg.Err(err.Error())
+	}
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		kg.Err(err.Error())
+	}
+
+	svcList, err := clientset.CoreV1().Services("").List(context.Background(), metav1.ListOptions{FieldSelector: "metadata.name=" + "etcd0"})
+	if err != nil {
+		return ""
+	}
+
+	for _, svc := range svcList.Items {
+		etcdClusterIP = svc.Spec.ClusterIP
+		break
+	}
+
+	etcdClusterIP = "http://" + etcdClusterIP + ":2379"
+
+	kg.Printf("Establishing connection with etcd service => %v", etcdClusterIP)
+	return etcdClusterIP
+}
+
 func NewEtcdClient() *EtcdClient {
+	/* TODO : To enable certificates in cluster and validate the same
+	 * Works fine with minikube
 	tlsInfo := transport.TLSInfo{
 		CertFile:      ct.EtcdCertFile,
 		KeyFile:       ct.EtcdKeyFile,
@@ -38,20 +70,23 @@ func NewEtcdClient() *EtcdClient {
 	if err != nil {
 		log.Fatal(err)
 	}
+	*/
 
 	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{ct.EtcdEndPoints},
+		Endpoints:   []string{getEtcdEndPoint()},
 		DialTimeout: 5 * time.Second,
-		TLS:         tlsConfig,
+		//TLS:         tlsConfig,
 	})
 	if err != nil {
-		log.Fatal(err)
+		kg.Err(err.Error())
+		return nil
 	}
 
 	// minimum lease TTL is 5-second
 	resp, err := cli.Grant(context.TODO(), int64(ct.EtcdClientTTL))
 	if err != nil {
-		log.Fatal(err)
+		kg.Err(err.Error())
+		return nil
 	}
 
 	kg.Print("Initialized the ETCD client!")
@@ -114,104 +149,4 @@ func (cli *EtcdClient) keepAliveEtcdConnection() {
 	if kaerr != nil {
 		log.Fatal(kaerr)
 	}
-}
-
-func tempNewEtcdClient() {
-	certFile := os.Getenv("SERVER_CRT")
-	keyFile := os.Getenv("SERVER_KEY")
-	caFile := os.Getenv("CA_CRT")
-	endPoints := os.Getenv("ENDPOINT")
-
-	tlsInfo := transport.TLSInfo{
-		CertFile:      certFile,
-		KeyFile:       keyFile,
-		TrustedCAFile: caFile,
-	}
-	tlsConfig, err := tlsInfo.ClientConfig()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{endPoints},
-		DialTimeout: 5 * time.Second,
-		TLS:         tlsConfig,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	resp, err := cli.Get(ctx, "/registry/security.kubearmor.com/kubearmorexternalworkloads", clientv3.WithPrefix(), clientv3.WithKeysOnly())
-	if err != nil {
-		log.Fatal(err)
-		fmt.Println("Wrong key: ", err.Error())
-		return
-	}
-
-	for _, ev := range resp.Kvs {
-		kew_crds = append(kew_crds, string(ev.Key))
-	}
-
-	hostPolicies, err := cli.Get(ctx, "/registry/security.kubearmor.com/kubearmorhostpolicies", clientv3.WithPrefix())
-
-	for _, hp := range hostPolicies.Kvs {
-		event := tp.MK8sKubeArmorHostPolicy{}
-		if err = json.Unmarshal([]byte(hp.Value), &event); err != nil {
-			panic(err)
-		}
-		if len(event.Spec.NodeSelector.MatchLabels["kubearmorexternalworkloads.security.kubearmor.com"]) > 0 {
-			ew_khps = append(ew_khps, event)
-		}
-
-		//for _, label := range event.Spec.NodeSelector.MatchLabels {
-		//	fmt.Println(label)
-		//}
-	}
-
-	for _, hp := range ew_khps {
-		fmt.Printf("+%v", hp)
-	}
-
-	// minimum lease TTL is 5-second
-	log.Print("Getting the lease of 2 seconds")
-	l_resp, err := cli.Grant(context.TODO(), 2)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// after 5 seconds, the key 'foo' will be removed
-	log.Print("Putting 'foo':'bar' into etcd")
-	_, err = cli.Put(context.TODO(), "foo", "bar", clientv3.WithLease(l_resp.ID))
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Print("Getting 'foo' from the etcd")
-	s, err := cli.Get(context.TODO(), "foo", clientv3.WithPrefix())
-
-	if len(s.Kvs) == 0 {
-		fmt.Println("No more 'foo'")
-	} else {
-		fmt.Println("Found key 'foo'")
-	}
-
-	log.Print("Sleeping for 3 seconds")
-	time.Sleep(3 * time.Second)
-
-	log.Print("Getting 'foo' from the etcd after lease expiry")
-	s, err = cli.Get(context.TODO(), "foo", clientv3.WithPrefix())
-
-	if len(s.Kvs) == 0 {
-		fmt.Println("No more 'foo'")
-	} else {
-		fmt.Println("Found key 'foo'")
-	}
-
-}
-
-func mmain() {
-	log.Println("Creating new etcd client")
-	//etcdClient = NewEtcdClient()
 }
