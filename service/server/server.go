@@ -150,8 +150,9 @@ func (s *Server) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 					kg.Print("Closing the connection")
 					return nil
 				}
-				break
 			}
+		default:
+			continue
 		}
 	}
 }
