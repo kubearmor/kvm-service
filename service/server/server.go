@@ -206,7 +206,7 @@ func (s *Server) RegisterAgentIdentity(ctx context.Context, in *pb.AgentIdentity
 	return &pb.Status{Status: 0}, nil
 }
 
-func (s *Server) InitServer() error {
+func (s *Server) InitServer() {
 	// TCP connection - Listen on port specified in input
 	PolicyChan = make(chan tp.K8sKubeArmorHostPolicyEventWithIdentity)
 	tcpConn, err := net.Listen("tcp", ":"+s.port)
@@ -227,6 +227,4 @@ func (s *Server) InitServer() error {
 	if err != nil {
 		kg.Err("Failed to serve")
 	}
-
-	return err
 }

@@ -13,7 +13,6 @@ import (
 
 	//"math/rand"
 	"context"
-	"strconv"
 	"time"
 
 	kl "github.com/kubearmor/KVMService/service/common"
@@ -32,6 +31,7 @@ func Find(slice []uint16, val uint16) (int, bool) {
 	return -1, false
 }
 
+/* TODO : Code currently not in use
 func (dm *KVMS) mGetAllEtcdEWLabels() {
 	kg.Print("Getting the External workload labels from ETCD")
 
@@ -54,6 +54,7 @@ func (dm *KVMS) mGetAllEtcdEWLabels() {
 		}
 	}
 }
+*/
 
 func (dm *KVMS) GetAllEtcdEWLabels() {
 	kg.Print("Getting the External workload labels from ETCD")
