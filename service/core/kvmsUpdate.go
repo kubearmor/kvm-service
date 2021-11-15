@@ -64,7 +64,7 @@ func (dm *KVMS) GetAllEtcdEWLabels() {
 		return
 	}
 
-	for key, _ := range etcdLabels {
+	for key := range etcdLabels {
 		s := strings.Split(key, "/")
 		label := s[len(s)-1]
 		dm.EtcdEWLabels = append(dm.EtcdEWLabels, label)

@@ -107,6 +107,7 @@ func getExternalIP() (string, error) {
 
 	for _, lbIngress := range kvmService.Status.LoadBalancer.Ingress {
 		externalIp = lbIngress.IP
+		break
 	}
 
 	kg.Printf("KVMService external IP => %v", externalIp)
