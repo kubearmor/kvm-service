@@ -5,6 +5,7 @@ package core
 
 import (
 	//"context"
+	"context"
 	"log"
 	"net"
 	"os"
@@ -18,6 +19,9 @@ import (
 	kg "github.com/kubearmor/KVMService/service/log"
 	ks "github.com/kubearmor/KVMService/service/server"
 	tp "github.com/kubearmor/KVMService/service/types"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	rest "k8s.io/client-go/rest"
 )
 
 // ClientConn is the wrapper for a grpc client conn
@@ -71,6 +75,42 @@ type KVMS struct {
 
 	// WgDaemon Handler
 	WgDaemon sync.WaitGroup
+}
+
+func getExternalIP() (string, error) {
+
+	/* Calculated time manually to see that the kvmsoperator service
+	 * takes a minimum of 45 seconds to fetch the same.
+	 * Hence placing a time delay of 1 minute
+	 */
+	time.Sleep(1 * 60 * time.Second)
+
+	var externalIp string
+
+	// creates the in-cluster config
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		kg.Err(err.Error())
+		return "", err
+	}
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		kg.Err(err.Error())
+		return "", err
+	}
+
+	kvmService, err := clientset.CoreV1().Services("").Get(context.Background(), "kvmservice", metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	for _, lbIngress := range kvmService.Status.LoadBalancer.Ingress {
+		externalIp = lbIngress.IP
+	}
+
+	kg.Printf("KVMService external IP => %v", externalIp)
+	return externalIp, nil
 }
 
 // NewKVMSDaemon Function
@@ -148,9 +188,17 @@ func GetOSSigChannel() chan os.Signal {
 // ========== //
 
 // KVMSDaemon Function
-func KVMSDaemon(portPtr int, ipAddressPtr string) {
+func KVMSDaemon(portPtr int) {
+
+	// Get kvmservice external ip
+	externalIp, err := getExternalIP()
+	if err != nil {
+		kg.Err(err.Error())
+		return
+	}
+
 	// create a daemon
-	dm := NewKVMSDaemon(portPtr, ipAddressPtr)
+	dm := NewKVMSDaemon(portPtr, externalIp)
 
 	// wait for a while
 	time.Sleep(time.Second * 1)

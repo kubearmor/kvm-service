@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"io"
 	"log"
+
 	//"sort"
 	"strings"
 
@@ -16,10 +17,10 @@ import (
 	"time"
 
 	kl "github.com/kubearmor/KVMService/service/common"
+	ct "github.com/kubearmor/KVMService/service/constants"
 	kg "github.com/kubearmor/KVMService/service/log"
 	ks "github.com/kubearmor/KVMService/service/server"
 	tp "github.com/kubearmor/KVMService/service/types"
-	ct "github.com/kubearmor/KVMService/service/constants"
 )
 
 func Find(slice []uint16, val uint16) (int, bool) {

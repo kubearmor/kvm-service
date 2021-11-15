@@ -47,14 +47,13 @@ func main() {
 		return
 	}
 
-  portPtr := flag.Int("port", 40400, "Cluster Port")
-  ipAddressPtr := flag.String("ipAddress", "", "Cluster Address")
+	portPtr := flag.Int("port", 40400, "Cluster Port")
 
 	flag.Parse()
 
 	// == //
 
-	core.KVMSDaemon(*portPtr, *ipAddressPtr)
+	core.KVMSDaemon(*portPtr)
 
 	// == //
 }

@@ -28,9 +28,6 @@ spec:
   ports:
   - port: 4040
   type: LoadBalancer
-  externalIPs:
-  - 192.168.100.112
-    #192.168.100.112/24
 ---
 apiVersion: apps/v1
   #kind: DaemonSet
@@ -63,11 +60,11 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: kvmservice
-        image: kubearmor/kvmservice:v1
-        imagePullPolicy: Never
+        image: accuknox/kvmservice:latest
+        imagePullPolicy: IfNotPresent
         securityContext:
           privileged: true
-        args: ["-port=40400", "-ipAddress='192.168.100.112'"]
+        args: ["-port=40400"]
         ports:
         - containerPort: 40400
           hostPort: 0
@@ -83,8 +80,6 @@ spec:
           readOnly: true
         - name: sys-fs-bpf-path # BPF (read-write)
           mountPath: /sys/fs/bpf
-        - name: etc-kubernetes-certs # BPF (read-write)
-          mountPath: /etc/kubernetes/pki/etcd/
         - name: sys-kernel-debug-path # BPF (read-write)
           mountPath: /sys/kernel/debug
             # - name: etc-apparmor-d-path # AppArmor (read-write)
@@ -122,10 +117,6 @@ spec:
       - name: sys-fs-bpf-path # BPF
         hostPath:
           path: /sys/fs/bpf
-          type: Directory
-      - name: etc-kubernetes-certs
-        hostPath:
-          path: /etc/kubernetes/pki/etcd/
           type: Directory
       - name: sys-kernel-debug-path # BPF
         hostPath:
