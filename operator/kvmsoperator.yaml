@@ -60,11 +60,11 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: kvmsoperator
-        image: accuknox/kvmsoperator:v0.1
-        imagePullPolicy: IfNotPresent
+        image: accuknox/kvmsoperator:v0.2
+        imagePullPolicy: Always
         securityContext:
           privileged: true
-        args: ["-port=32770"]
+        args: ["-port=40400"]
         volumeMounts:
         - name: docker-sock-path # docker (read-only)
           mountPath: /var/run/docker.sock

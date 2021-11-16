@@ -100,7 +100,7 @@ func getExternalIP() (string, error) {
 		return "", err
 	}
 
-	kvmService, err := clientset.CoreV1().Services("").Get(context.Background(), "kvmservice", metav1.GetOptions{})
+	kvmService, err := clientset.CoreV1().Services("kube-system").Get(context.Background(), "kvmservice", metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
