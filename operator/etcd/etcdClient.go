@@ -8,14 +8,16 @@ package etcdClient
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
+	ct "github.com/kubearmor/KVMService/operator/constants"
+	kg "github.com/kubearmor/KVMService/operator/log"
 	tp "github.com/kubearmor/KVMService/operator/types"
 	"go.etcd.io/etcd/client/pkg/v3/transport"
-	"go.etcd.io/etcd/client/v3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 var kew_crds []string
@@ -26,19 +28,11 @@ type EtcdClient struct {
 	leaseResponse *clientv3.LeaseGrantResponse
 }
 
-//func NewEtcdClient() *clientv3.Client {
 func NewEtcdClient() *EtcdClient {
-	// TODO: Need to fix as constant variables
-	certFile := "/etc/kubernetes/pki/etcd/server.crt"
-	keyFile := "/etc/kubernetes/pki/etcd/server.key"
-	caFile := "/etc/kubernetes/pki/etcd/ca.crt"
-	endPoints := "https://10.0.2.15:2379"
-	ttl := int64(5)
-
 	tlsInfo := transport.TLSInfo{
-		CertFile:      certFile,
-		KeyFile:       keyFile,
-		TrustedCAFile: caFile,
+		CertFile:      ct.EtcdCertFile,
+		KeyFile:       ct.EtcdKeyFile,
+		TrustedCAFile: ct.EtcdCAFile,
 	}
 	tlsConfig, err := tlsInfo.ClientConfig()
 	if err != nil {
@@ -46,7 +40,7 @@ func NewEtcdClient() *EtcdClient {
 	}
 
 	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{endPoints},
+		Endpoints:   []string{ct.EtcdEndPoints},
 		DialTimeout: 5 * time.Second,
 		TLS:         tlsConfig,
 	})
@@ -55,36 +49,37 @@ func NewEtcdClient() *EtcdClient {
 	}
 
 	// minimum lease TTL is 5-second
-	resp, err := cli.Grant(context.TODO(), ttl)
+	resp, err := cli.Grant(context.TODO(), int64(ct.EtcdClientTTL))
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	kg.Print("Initialized the ETCD client!")
 	return &EtcdClient{etcdClient: cli, leaseResponse: resp}
 }
 
 func (cli *EtcdClient) EtcdPutWithTTL(ctx context.Context, key, value string) error {
-    _, err := cli.etcdClient.Put(context.TODO(), key, value, clientv3.WithLease(cli.leaseResponse.ID))
+	kg.Printf("ETCD: putting with TTL key:%v value:%v", key, value)
+	_, err := cli.etcdClient.Put(context.TODO(), key, value, clientv3.WithLease(cli.leaseResponse.ID))
 	if err != nil {
 		log.Fatal(err)
 		return err
 	}
-
 	return nil
 }
 
 func (cli *EtcdClient) EtcdPut(ctx context.Context, key, value string) error {
+	kg.Printf("ETCD: putting key:%v value:%v", key, value)
 	_, err := cli.etcdClient.Put(ctx, key, value)
 	if err != nil {
 		log.Fatal(err)
 		return err
 	}
-
 	return nil
 }
 
 func (cli *EtcdClient) EtcdGet(ctx context.Context, key string) (map[string]string, error) {
-	//var keyValuePair map[string]string
+	kg.Printf("ETCD: getting key:%v", key)
 	keyValuePair := make(map[string]string)
 	resp, err := cli.etcdClient.Get(ctx, key, clientv3.WithPrefix())
 	if err != nil {
@@ -92,31 +87,29 @@ func (cli *EtcdClient) EtcdGet(ctx context.Context, key string) (map[string]stri
 		return nil, err
 	}
 	if len(resp.Kvs) == 0 {
-		err := errors.New("err: no much data")
-		log.Fatal(err)
-		return nil, err
+		kg.Print("ETCD: No data")
+		return nil, nil
 	}
 
 	for _, ev := range resp.Kvs {
 		keyValuePair[string(ev.Key)] = string(ev.Value)
+		kg.Printf("ETCD: getting key:%v value:%v", ev.Key, ev.Value)
 	}
-
 	return keyValuePair, nil
 }
 
 func (cli *EtcdClient) EtcdDelete(ctx context.Context, key string) error {
+	kg.Printf("ETCD: Deleting key:%v", key)
 	_, err := cli.etcdClient.Delete(ctx, key, clientv3.WithPrefix())
 	if err != nil {
 		log.Fatal(err)
 		return err
 	}
-
 	return nil
 }
 
 func (cli *EtcdClient) keepAliveEtcdConnection() {
-	fmt.Println("Keep alive etcd connection")
-	// the key 'foo' will be kept forever
+	kg.Print("ETCD: Keep alive etcd connection")
 	_, kaerr := cli.etcdClient.KeepAlive(context.TODO(), cli.leaseResponse.ID)
 	if kaerr != nil {
 		log.Fatal(kaerr)
@@ -124,10 +117,10 @@ func (cli *EtcdClient) keepAliveEtcdConnection() {
 }
 
 func tempNewEtcdClient() {
-	certFile := "/etc/kubernetes/pki/etcd/server.crt"
-	keyFile := "/etc/kubernetes/pki/etcd/server.key"
-	caFile := "/etc/kubernetes/pki/etcd/ca.crt"
-	endPoints := "https://10.0.2.15:2379"
+	certFile := os.Getenv("SERVER_CRT")
+	keyFile := os.Getenv("SERVER_KEY")
+	caFile := os.Getenv("CA_CRT")
+	endPoints := os.Getenv("ENDPOINT")
 
 	tlsInfo := transport.TLSInfo{
 		CertFile:      certFile,
@@ -179,7 +172,7 @@ func tempNewEtcdClient() {
 	}
 
 	for _, hp := range ew_khps {
-		fmt.Printf("+%v\n", hp)
+		fmt.Printf("+%v", hp)
 	}
 
 	// minimum lease TTL is 5-second

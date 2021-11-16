@@ -5,7 +5,6 @@ package core
 
 import (
 	"bytes"
-	//	"context"
 	"crypto/tls"
 	"encoding/json"
 	"flag"
@@ -17,14 +16,13 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	//"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	rest "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	kl "github.com/kubearmor/KVMService/service/common"
 	kg "github.com/kubearmor/KVMService/service/log"
-	//tp "github.com/kubearmor/KVMService/service/types"
+	ct "github.com/kubearmor/KVMService/service/constants"
 )
 
 // ================= //
@@ -57,13 +55,13 @@ func NewK8sHandler() *K8sHandler {
 	if val, ok := os.LookupEnv("KUBERNETES_SERVICE_HOST"); ok {
 		kh.K8sHost = val
 	} else {
-		kh.K8sHost = "127.0.0.1"
+		kh.K8sHost = ct.LocalHostIPAddress
 	}
 
 	if val, ok := os.LookupEnv("KUBERNETES_PORT_443_TCP_PORT"); ok {
 		kh.K8sPort = val
 	} else {
-		kh.K8sPort = "8001" // kube-proxy
+		kh.K8sPort = ct.KubeProxyK8sPort // kube-proxy
 	}
 
 	kh.HTTPClient = &http.Client{
@@ -277,42 +275,6 @@ func (kh *K8sHandler) WatchK8sHostSecurityPolicies() *http.Response {
 
 	// kube-proxy (local)
 	URL := "http://" + kh.K8sHost + ":" + kh.K8sPort + "/apis/security.kubearmor.com/v1/kubearmorhostpolicies?watch=true"
-
-	// #nosec
-	if resp, err := http.Get(URL); err == nil {
-		return resp
-	}
-
-	return nil
-}
-
-// WatchK8sExternalWorkloadSecurityPolicies Function
-func (kh *K8sHandler) WatchK8sExternalWorkloadSecurityPolicies() *http.Response {
-	if !kl.IsK8sEnv() { // not Kubernetes
-		return nil
-	}
-
-	if kl.IsInK8sCluster() {
-		URL := "https://" + kh.K8sHost + ":" + kh.K8sPort + "/apis/security.kubearmor.com/v1/kubearmorexternalworkloads?watch=true"
-
-		req, err := http.NewRequest("GET", URL, nil)
-		if err != nil {
-			return nil
-		}
-
-		req.Header.Add("Content-Type", "application/json")
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", kh.K8sToken))
-
-		resp, err := kh.WatchClient.Do(req)
-		if err != nil {
-			return nil
-		}
-
-		return resp
-	}
-
-	// kube-proxy (local)
-	URL := "http://" + kh.K8sHost + ":" + kh.K8sPort + "/apis/security.kubearmor.com/v1/kubearmorexternalworkloads?watch=true"
 
 	// #nosec
 	if resp, err := http.Get(URL); err == nil {
