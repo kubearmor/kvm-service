@@ -67,6 +67,11 @@ spec:
         securityContext:
           privileged: true
         args: ["-port=40400"]
+        env:
+          - name: ETCD_NAMESPACE
+            value: "kube-system"
+          - name: KVMSERVICE_NAMESPACE
+            value: "kube-system"
         ports:
         - containerPort: 40400
           hostPort: 0

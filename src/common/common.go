@@ -6,7 +6,6 @@ package common
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -321,50 +320,23 @@ func MatchIdentities(identities []string, superIdentities []string) bool {
 // ==================================== //
 // === External and etcd Cluster IP === //
 // ==================================== //
-func getServiceNamespace(serviceAccountName string) (*kubernetes.Clientset, string) {
-	var namespace string
-	var clientset *kubernetes.Clientset
+func GetEtcdEndPoint(serviceAccoutName string) string {
+
+	var etcdClusterIP string
 
 	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		kg.Err(err.Error())
 	}
+
 	// creates the clientset
-	clientset, err = kubernetes.NewForConfig(config)
+	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		kg.Err(err.Error())
 	}
 
-	// Get the list of namespaces in kubernetes context
-	namespaces, err := clientset.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		return nil, ""
-	}
-
-	for _, ns := range namespaces.Items {
-		// Fetch the namespace of kvmservice
-		if _, err := clientset.CoreV1().ServiceAccounts(ns.Name).Get(context.Background(), serviceAccountName, metav1.GetOptions{}); err != nil {
-			continue
-		}
-		namespace = ns.Name
-		break
-	}
-
-	return clientset, namespace
-}
-
-func GetEtcdEndPoint() string {
-
-	var etcdClusterIP string
-
-	clientset, namespace := getServiceNamespace(ct.EtcdServiceAccountName)
-	if clientset == nil || namespace == "" {
-		kg.Err("failed to fetch namespace")
-		return ""
-	}
-
-	svcList, err := clientset.CoreV1().Services(namespace).List(context.Background(), metav1.ListOptions{FieldSelector: "metadata.name=" + ct.EtcdServiceAccountName})
+	svcList, err := clientset.CoreV1().Services(ct.EtcdNamespace).List(context.Background(), metav1.ListOptions{FieldSelector: "metadata.name=" + serviceAccoutName})
 	if err != nil {
 		kg.Err(err.Error())
 		return ""
@@ -381,19 +353,25 @@ func GetEtcdEndPoint() string {
 	return etcdClusterIP
 }
 
-func GetExternalIP() (string, error) {
+func GetExternalIP(serviceAccountName string) (string, error) {
 
 	var externalIp string
 	var err error
 
-	clientset, namespace := getServiceNamespace(ct.KvmServiceAccountName)
-	if clientset == nil || namespace == "" {
-		err = errors.New("failed to fetch namespace")
-		return "", err
+	// creates the in-cluster config
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		kg.Err(err.Error())
+	}
+
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		kg.Err(err.Error())
 	}
 
 	for externalIp == "" {
-		kvmService, err := clientset.CoreV1().Services(namespace).Get(context.Background(), ct.KvmServiceAccountName, metav1.GetOptions{})
+		kvmService, err := clientset.CoreV1().Services(ct.KvmServiceNamespace).Get(context.Background(), serviceAccountName, metav1.GetOptions{})
 		if err != nil {
 			break
 		}
@@ -404,6 +382,6 @@ func GetExternalIP() (string, error) {
 		}
 	}
 
-	kg.Printf("KVMService external IP => %v", externalIp)
+	kg.Printf("%s external IP => %v", serviceAccountName, externalIp)
 	return externalIp, err
 }

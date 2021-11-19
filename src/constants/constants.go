@@ -1,5 +1,7 @@
 package constants
 
+import "os"
+
 var (
 	KvmOprIdentityToEWName  = "/kvm-opr-map-identity-to-ewname/"
 	KvmOprEWNameToIdentity  = "/kvm-opr-map-ewname-to-identity/"
@@ -21,4 +23,8 @@ var (
 
 	EtcdServiceAccountName = "etcd0"
 	KvmServiceAccountName  = "kvmservice"
+	KvmOperatorAccountName = "kvmsoperator"
+
+	EtcdNamespace       = os.Getenv("ETCD_NAMESPACE")
+	KvmServiceNamespace = os.Getenv("KVMSERVICE_NAMESPACE")
 )

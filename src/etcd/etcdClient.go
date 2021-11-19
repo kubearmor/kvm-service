@@ -34,7 +34,7 @@ func NewEtcdClient() *EtcdClient {
 	*/
 
 	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{kc.GetEtcdEndPoint()},
+		Endpoints:   []string{kc.GetEtcdEndPoint(ct.EtcdServiceAccountName)},
 		DialTimeout: 5 * time.Second,
 		//TLS:         tlsConfig,
 	})

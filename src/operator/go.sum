@@ -556,7 +556,6 @@ k8s.io/api v0.22.4/go.mod h1:Rgs+9gIGYC5laXQSZZ9JqT5NevNgoGiOdVWi1BAB3qk=
 k8s.io/apimachinery v0.22.3/go.mod h1:O3oNtNadZdeOMxHFVxOreoznohCpy0z6mocxbZr7oJ0=
 k8s.io/apimachinery v0.22.4 h1:9uwcvPpukBw/Ri0EUmWz+49cnFtaoiyEhQTK+xOe7Ck=
 k8s.io/apimachinery v0.22.4/go.mod h1:yU6oA6Gnax9RrxGzVvPFFJ+mpnW6PBSqp0sx0I0HHW0=
-k8s.io/client-go v0.22.3/go.mod h1:ElDjYf8gvZsKDYexmsmnMQ0DYO8W9RwBjfQ1PI53yow=
 k8s.io/client-go v0.22.4 h1:aAQ1Wk+I3bjCNk35YWUqbaueqrIonkfDPJSPDDe8Kfg=
 k8s.io/client-go v0.22.4/go.mod h1:Yzw4e5e7h1LNHA4uqnMVrpEpUs1hJOiuBsJKIlRCHDA=
 k8s.io/gengo v0.0.0-20200413195148-3a45101e95ac/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8IAqLxYwwyPxAX1Pzy0ii0=

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	kc "github.com/kubearmor/KVMService/src/common"
+	ct "github.com/kubearmor/KVMService/src/constants"
 	etcd "github.com/kubearmor/KVMService/src/etcd"
 	kg "github.com/kubearmor/KVMService/src/log"
 	gs "github.com/kubearmor/KVMService/src/service/genscript"
@@ -154,7 +155,7 @@ func GetOSSigChannel() chan os.Signal {
 func KVMSDaemon(portPtr int) {
 
 	// Get kvmservice external ip
-	externalIp, err := kc.GetExternalIP()
+	externalIp, err := kc.GetExternalIP(ct.KvmServiceAccountName)
 	if err != nil {
 		kg.Err(err.Error())
 		return
