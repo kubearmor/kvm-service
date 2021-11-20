@@ -34,7 +34,7 @@ func GetIdentityFromContext(ctx context.Context) uint16 {
 	return uint16(identity)
 }
 
-func (s *Server) UpdateETCDLabelToIdentitiesMaps(identity uint16) {
+func (s *KVMServer) UpdateETCDLabelToIdentitiesMaps(identity uint16) {
 
 	err := EtcdClient.EtcdDelete(context.Background(), ct.KvmSvcIdentitiToPodIps+strconv.Itoa(int(identity)))
 	if err != nil {
@@ -79,7 +79,7 @@ func (s *Server) UpdateETCDLabelToIdentitiesMaps(identity uint16) {
 	}
 }
 
-func (s *Server) SendPolicy(stream pb.KVM_SendPolicyServer) error {
+func (s *KVMServer) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 	var policy pb.PolicyData
 	var loop bool
 	loop = true
@@ -161,10 +161,10 @@ func IsIdentityServing(identity string) int {
 	return 0
 }
 
-func (s *Server) RegisterAgentIdentity(ctx context.Context, in *pb.AgentIdentity) (*pb.Status, error) {
+func (s *KVMServer) RegisterAgentIdentity(ctx context.Context, in *pb.AgentIdentity) (*pb.Status, error) {
 	kg.Print("Recieved the connection from the identity")
 	var identity uint16
-	// TODO : Which function for identity register with etcd
+
 	if IsIdentityServing(in.Identity) == 0 {
 		kg.Print("Connection refused due to already busy or invalid identity")
 		return &pb.Status{Status: -1}, nil
