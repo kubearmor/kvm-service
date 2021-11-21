@@ -32,7 +32,7 @@ fi
 # remove old images
 docker images | grep kvmservice | awk '{print $3}' | xargs -I {} docker rmi -f {} 2> /dev/null
 
-echo "[INFO] Removed existing kvmservice/kvmservice images"
+echo "[INFO] Removed existing kubearmor/kvmservice images"
 
 # remove old files (just in case)
 $ARMOR_HOME/build/clean_source_files.sh
@@ -45,14 +45,14 @@ $ARMOR_HOME/build/copy_source_files.sh
 echo "[INFO] Copied new source files"
 
 # build a new image
-echo "[INFO] Building kvmservice/kvmservice:$VERSION"
-docker build -t kvmservice/kvmservice:$VERSION  . -f $ARMOR_HOME/build/Dockerfile.kvmservice
+echo "[INFO] Building kubearmor/kvmservice:$VERSION"
+docker build -t kubearmor/kvmservice:$VERSION  . -f $ARMOR_HOME/build/Dockerfile.kvmservice
 
 if [ $? != 0 ]; then
-    echo "[FAILED] Failed to build kvmservice/kvmservice:$VERSION"
+    echo "[FAILED] Failed to build kubearmor/kvmservice:$VERSION"
     exit 1
 else
-    echo "[PASSED] Built kvmservice/kvmservice:$VERSION"
+    echo "[PASSED] Built kubearmor/kvmservice:$VERSION"
 fi
 
 # remove copied files
