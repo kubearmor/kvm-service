@@ -34,7 +34,7 @@ func GetIdentityFromContext(ctx context.Context) uint16 {
 	return uint16(identity)
 }
 
-func (s *KVMServer) UpdateETCDLabelToIdentitiesMaps(identity uint16) {
+func UpdateETCDLabelToIdentitiesMaps(identity uint16) {
 
 	err := EtcdClient.EtcdDelete(context.Background(), ct.KvmSvcIdentitiToPodIps+strconv.Itoa(int(identity)))
 	if err != nil {
@@ -95,6 +95,7 @@ func (s *KVMServer) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 			closeEvent.Identity = GetIdentityFromContext(stream.Context())
 			closeEvent.CloseConnection = true
 			kg.Errf("Closing client connections for identity %d\n", closeEvent.Identity)
+			UpdateETCDLabelToIdentitiesMaps(GetIdentityFromContext(stream.Context()))
 			loop = false
 			PolicyChan <- closeEvent
 			//}

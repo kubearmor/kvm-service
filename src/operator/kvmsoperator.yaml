@@ -57,7 +57,7 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: kvmsoperator
-        image: seswarrajan/kvmsoperator:v0.3
+        image: kubearmor/kvmsoperator:v0.1
         imagePullPolicy: Always
         securityContext:
           privileged: true
