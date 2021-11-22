@@ -27,9 +27,9 @@ spec:
     kvmservice-app: kvmservice
   type: LoadBalancer
   ports:
-  - port: 40400
+  - port: 32770
     protocol: TCP
-    targetPort: 40400
+    targetPort: 32770
 ---
 apiVersion: apps/v1
   #kind: DaemonSet
@@ -62,11 +62,11 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: kvmservice
-        image: seswarrajan/kvmservice:v0.3
+        image: kubearmor/kvmservice:latest
         imagePullPolicy: Always
         securityContext:
           privileged: true
-        args: ["-port=40400"]
+        args: ["-port=32770"]
         env:
           - name: ETCD_NAMESPACE
             value: "kube-system"
