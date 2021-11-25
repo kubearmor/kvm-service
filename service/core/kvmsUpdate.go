@@ -7,19 +7,19 @@ import (
 	"encoding/json"
 	"io"
 	"log"
+
 	//"sort"
 	"strings"
 
 	//"math/rand"
 	"context"
-	"strconv"
 	"time"
 
 	kl "github.com/kubearmor/KVMService/service/common"
+	ct "github.com/kubearmor/KVMService/service/constants"
 	kg "github.com/kubearmor/KVMService/service/log"
 	ks "github.com/kubearmor/KVMService/service/server"
 	tp "github.com/kubearmor/KVMService/service/types"
-	ct "github.com/kubearmor/KVMService/service/constants"
 )
 
 func Find(slice []uint16, val uint16) (int, bool) {
@@ -31,6 +31,7 @@ func Find(slice []uint16, val uint16) (int, bool) {
 	return -1, false
 }
 
+/* TODO : Code currently not in use
 func (dm *KVMS) mGetAllEtcdEWLabels() {
 	kg.Print("Getting the External workload labels from ETCD")
 
@@ -53,6 +54,7 @@ func (dm *KVMS) mGetAllEtcdEWLabels() {
 		}
 	}
 }
+*/
 
 func (dm *KVMS) GetAllEtcdEWLabels() {
 	kg.Print("Getting the External workload labels from ETCD")

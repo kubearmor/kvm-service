@@ -5,14 +5,11 @@ package etcdClient
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"log"
 	"time"
 
 	ct "github.com/kubearmor/KVMService/service/constants"
 	kg "github.com/kubearmor/KVMService/service/log"
-	tp "github.com/kubearmor/KVMService/service/types"
 	"go.etcd.io/etcd/client/pkg/v3/transport"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )

@@ -11,7 +11,7 @@ import (
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:resource:singular="kubearmorexternalworkload",path="kubearmorexternalworkloads",scope="Cluster",shortName={kew}
 // +kubebuilder:subresource:status
-type KubeArmorExternalWorkload struct {
+type KubeArmorVirtualMachine struct {
 	// +k8s:openapi-gen=false
 	// +deepequal-gen=false
 	metav1.TypeMeta `json:",inline"`
@@ -24,11 +24,11 @@ type KubeArmorExternalWorkload struct {
 	//
 	// +deepequal-gen=false
 	// +kubebuilder:validation:Optional
-	Status KubeArmorExternalWorkloadStatus `json:"status"`
+	Status KubeArmorVirtualMachineStatus `json:"status"`
 }
 
-// KubeArmorExternalWorkloadStatus is the status of a the external KubeArmor workload.
-type KubeArmorExternalWorkloadStatus struct {
+// KubeArmorVirtualMachineStatus is the status of a the external KubeArmor workload.
+type KubeArmorVirtualMachineStatus struct {
 	// ID is the numeric identity allocated for the external workload.
 	ID uint64 `json:"id,omitempty"`
 
@@ -40,15 +40,15 @@ type KubeArmorExternalWorkloadStatus struct {
 // +k8s:openapi-gen=false
 // +deepequal-gen=false
 
-// KubeArmorExternalWorkloadList is a list of KubeArmorExternalWorkload objects.
-type KubeArmorExternalWorkloadList struct {
+// KubeArmorVirtualMachineList is a list of KubeArmorVirtualMachine objects.
+type KubeArmorVirtualMachineList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 
-	// Items is a list of KubeArmorExternalWorkload
-	Items []KubeArmorExternalWorkload `json:"items"`
+	// Items is a list of KubeArmorVirtualMachine
+	Items []KubeArmorVirtualMachine `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&KubeArmorExternalWorkload{}, &KubeArmorExternalWorkloadList{})
+	SchemeBuilder.Register(&KubeArmorVirtualMachine{}, &KubeArmorVirtualMachineList{})
 }
