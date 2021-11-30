@@ -22,7 +22,6 @@ jobs:
           go-version: v1.17
 
       - name: Check gofmt
-        run: make -C src/operator gofmt
         run: make -C src/service gofmt
 
   go-sec:
@@ -36,7 +35,6 @@ jobs:
           go-version: v1.17
 
       - name: Run Gosec Security Scanner
-        run: make -C src/operator gosec
         run: make -C src/service gosec
 
   go-lint:
