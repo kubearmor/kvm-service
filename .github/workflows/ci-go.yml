@@ -45,6 +45,6 @@ jobs:
 
       - name: golangci-lint
         with:
-          working-directory: src
+          working-directory: src/service
           args: --timeout=300s
         uses: golangci/golangci-lint-action@v2
