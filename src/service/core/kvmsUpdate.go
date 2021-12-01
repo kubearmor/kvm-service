@@ -57,7 +57,7 @@ func (dm *KVMS) mGetAllEtcdEWLabels() {
 */
 
 func (dm *KVMS) GetAllEtcdEWLabels() {
-	kg.Print("Getting the External workload labels from ETCD")
+	kg.Print("Getting the Virtual Machine labels from ETCD")
 	etcdLabels, err := dm.EtcdClient.EtcdGet(context.TODO(), ct.KvmOprLabelToIdentities)
 	if err != nil {
 		log.Fatal(err)
@@ -136,7 +136,7 @@ func (dm *KVMS) UpdateHostSecurityPolicies(event tp.K8sKubeArmorHostPolicyEvent)
 	if kl.MatchIdentities(labels, dm.EtcdEWLabels) {
 		for _, label := range labels {
 			identities = dm.GetIdentityFromLabelPool(label)
-			kg.Printf("External workload CRD matched with policy identity:%+v label:%s\n", identities, label)
+			kg.Printf("Virtual Machine CRD matched with policy identity:%+v label:%s\n", identities, label)
 			if len(identities) > 0 {
 				dm.PassOverToKVMSAgent(event, identities)
 			}

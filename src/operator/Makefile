@@ -34,7 +34,7 @@ run-per-pod: build
 .PHONY: run-with-host
 run-with-host: build
 	cd $(CURDIR); sudo rm -f /tmp/kvms-operator.log
-	cd $(CURDIR); sudo -E ./kvms-operator #-logPath=/tmp/kvms-operator.log -enableHostPolicy -enableExternalWorkloadPolicy
+	cd $(CURDIR); sudo -E ./kvms-operator #-logPath=/tmp/kvms-operator.log -enableHostPolicy -enableVirtualMachinePolicy
 
 .PHONY: test
 test:

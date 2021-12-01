@@ -71,7 +71,7 @@ $ kubectl logs -n kube-system kvmsoperator-68c4bccdd4-6mzlw
 2021-11-01 06:17:47.518585      INFO    Initialized the ETCD client!
 2021-11-01 06:17:47.518659      INFO    Initiliazing the CLIHandler => Port:32770
 2021-11-01 06:17:47.518738      INFO    Successfully initialized the KVMSOperator with args => (clusterIp:'35.238.22.7' clusterPort:40400
-2021-11-01 06:17:48.521887      INFO    Started the external workload CRD watcher
+2021-11-01 06:17:48.521887      INFO    Started the Virtual Machine CRD watcher
 2021-11-01 06:17:48.521964      INFO    Started the CLI Handler
 2021-11-01 06:17:48.523054      INFO    Successfully CLIHandler Listening on port 32770
 $ 

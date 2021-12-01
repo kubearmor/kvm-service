@@ -19,15 +19,15 @@ import (
 	tp "github.com/kubearmor/KVMService/src/types"
 )
 
-// UpdateExternalWorkloadSecurityPolicies Function
-func (dm *KVMSOperator) UpdateExternalWorkloadSecurityPolicies() {
+// UpdateVirtualMachineSecurityPolicies Function
+func (dm *KVMSOperator) UpdateVirtualMachineSecurityPolicies() {
 
-	dm.ExternalWorkloadSecurityPoliciesLock.Lock()
-	defer dm.ExternalWorkloadSecurityPoliciesLock.Unlock()
+	dm.VirtualMachineSecurityPoliciesLock.Lock()
+	defer dm.VirtualMachineSecurityPoliciesLock.Unlock()
 
-	secPolicies := []tp.ExternalWorkloadSecurityPolicy{}
+	secPolicies := []tp.VirtualMachineSecurityPolicy{}
 
-	for _, policy := range dm.ExternalWorkloadSecurityPolicies {
+	for _, policy := range dm.VirtualMachineSecurityPolicies {
 		// TODO:
 		secPolicies = append(secPolicies, policy)
 	}
@@ -105,7 +105,7 @@ func (dm *KVMSOperator) UpdateIdentityLabelsMap(identity uint16, label string) {
 	}
 }
 
-func (dm *KVMSOperator) GenerateExternalWorkloadIdentity(name string, labels map[string]string) uint16 {
+func (dm *KVMSOperator) GenerateVirtualMachineIdentity(name string, labels map[string]string) uint16 {
 	for {
 		identity := uint16(rand.Uint32())
 		if dm.MapIdentityToEWName[identity] == "" {
@@ -132,36 +132,36 @@ func (dm *KVMSOperator) GetEWIdentityFromName(name string) uint16 {
 	return dm.MapEWNameToIdentity[name]
 }
 
-func (dm *KVMSOperator) GetExternalWorkloadIdentities(name string) []uint16 {
+func (dm *KVMSOperator) GetVirtualMachineIdentities(name string) []uint16 {
 	return dm.MapLabelToIdentities[name]
 }
 
-func (dm *KVMSOperator) GetExternalWorkloadLabel(identity uint16) string {
+func (dm *KVMSOperator) GetVirtualMachineLabel(identity uint16) string {
 	return dm.MapIdentityToLabel[identity]
 }
 
-func (dm *KVMSOperator) GetExternalWorkLoadAllLabels() []string {
-	var externalWorkloadLabels []string
+func (dm *KVMSOperator) GetVirtualMachineAllLabels() []string {
+	var VirtualMachineLabels []string
 	for label, _ := range dm.MapLabelToIdentities {
-		externalWorkloadLabels = append(externalWorkloadLabels, label)
+		VirtualMachineLabels = append(VirtualMachineLabels, label)
 	}
-	return externalWorkloadLabels
+	return VirtualMachineLabels
 }
 
-// WatchExternalWorkloadSecurityPolicies Function
-func (dm *KVMSOperator) WatchExternalWorkloadSecurityPolicies() {
+// WatchVirtualMachineSecurityPolicies Function
+func (dm *KVMSOperator) WatchVirtualMachineSecurityPolicies() {
 	for {
-		if !K8s.CheckCustomResourceDefinition(ct.KewCRDName) {
+		if !K8s.CheckCustomResourceDefinition(ct.KvmCRDName) {
 			time.Sleep(time.Second * 1)
 			continue
 		}
 
-		if resp := K8s.WatchK8sExternalWorkloadSecurityPolicies(); resp != nil {
+		if resp := K8s.WatchK8sVirtualMachineSecurityPolicies(); resp != nil {
 			defer resp.Body.Close()
 
 			decoder := json.NewDecoder(resp.Body)
 			for {
-				event := tp.K8sKubeArmorExternalWorkloadPolicyEvent{}
+				event := tp.K8sKubeArmorVirtualMachinePolicyEvent{}
 				if err := decoder.Decode(&event); err == io.EOF {
 					break
 				} else if err != nil {
@@ -171,10 +171,10 @@ func (dm *KVMSOperator) WatchExternalWorkloadSecurityPolicies() {
 				if event.Object.Status.Status != "" && event.Object.Status.Status != "OK" {
 					continue
 				}
-				dm.ExternalWorkloadSecurityPoliciesLock.Lock()
+				dm.VirtualMachineSecurityPoliciesLock.Lock()
 
-				secPolicy := tp.ExternalWorkloadSecurityPolicy{}
-				kg.Print("Recieved external workload policy request!!!")
+				secPolicy := tp.VirtualMachineSecurityPolicy{}
+				kg.Print("Received Virtual Machine policy request!!!")
 
 				secPolicy.Metadata.NodeSelector.MatchLabels = event.Object.Metadata.Labels
 				secPolicy.Metadata.Name = event.Object.Metadata.Name
@@ -182,29 +182,29 @@ func (dm *KVMSOperator) WatchExternalWorkloadSecurityPolicies() {
 				// update a security policy into the policy list
 
 				if event.Type == "ADDED" {
-					kg.Printf("New External Workload CRD is configured! => %s", secPolicy.Metadata.Name)
-					if !kl.ContainsElement(dm.ExternalWorkloadSecurityPolicies, secPolicy) {
-						dm.ExternalWorkloadSecurityPolicies = append(dm.ExternalWorkloadSecurityPolicies, secPolicy)
-						identity := dm.GenerateExternalWorkloadIdentity(secPolicy.Metadata.Name, secPolicy.Metadata.NodeSelector.MatchLabels)
+					kg.Printf("New Virtual Machine CRD is configured! => %s", secPolicy.Metadata.Name)
+					if !kl.ContainsElement(dm.VirtualMachineSecurityPolicies, secPolicy) {
+						dm.VirtualMachineSecurityPolicies = append(dm.VirtualMachineSecurityPolicies, secPolicy)
+						identity := dm.GenerateVirtualMachineIdentity(secPolicy.Metadata.Name, secPolicy.Metadata.NodeSelector.MatchLabels)
 						kg.Printf("Generated the identity(%s) for this CRD:%d", secPolicy.Metadata.Name, identity)
 						//gs.GenerateEWInstallationScript(dm.Port, dm.ClusterIp, secPolicy.Metadata.Name, identity)
 						dm.UpdateIdentityLabelsMap(identity, dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels))
 					}
 				} else if event.Type == "MODIFIED" {
-					kg.Printf("External Workload CRD is Modified! => %s", secPolicy.Metadata.Name)
-					for idx, policy := range dm.ExternalWorkloadSecurityPolicies {
+					kg.Printf("Virtual Machine CRD is Modified! => %s", secPolicy.Metadata.Name)
+					for idx, policy := range dm.VirtualMachineSecurityPolicies {
 						if policy.Metadata.Name == secPolicy.Metadata.Name {
-							dm.ExternalWorkloadSecurityPolicies[idx] = secPolicy
+							dm.VirtualMachineSecurityPolicies[idx] = secPolicy
 							identity := dm.GetEWIdentityFromName(secPolicy.Metadata.Name)
 							dm.UpdateIdentityLabelsMap(identity, dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels))
 							break
 						}
 					}
 				} else if event.Type == "DELETED" {
-					kg.Printf("External Workload CRD is Deleted! => %s", secPolicy.Metadata.Name)
-					for idx, policy := range dm.ExternalWorkloadSecurityPolicies {
+					kg.Printf("Virtual Machine CRD is Deleted! => %s", secPolicy.Metadata.Name)
+					for idx, policy := range dm.VirtualMachineSecurityPolicies {
 						if reflect.DeepEqual(secPolicy, policy) {
-							dm.ExternalWorkloadSecurityPolicies = append(dm.ExternalWorkloadSecurityPolicies[:idx], dm.ExternalWorkloadSecurityPolicies[idx+1:]...)
+							dm.VirtualMachineSecurityPolicies = append(dm.VirtualMachineSecurityPolicies[:idx], dm.VirtualMachineSecurityPolicies[idx+1:]...)
 							identity := dm.GetEWIdentityFromName(secPolicy.Metadata.Name)
 							kg.Printf("Before: %+v\n", dm.MapLabelToIdentities[dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels)])
 							dm.UnMapLabelIdentity(identity, secPolicy.Metadata.Name, dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels))
@@ -213,10 +213,10 @@ func (dm *KVMSOperator) WatchExternalWorkloadSecurityPolicies() {
 						}
 					}
 				}
-				dm.ExternalWorkloadSecurityPoliciesLock.Unlock()
+				dm.VirtualMachineSecurityPoliciesLock.Unlock()
 
-				// apply security policies to a external workload
-				dm.UpdateExternalWorkloadSecurityPolicies()
+				// apply security policies to a Virtual Machine
+				dm.UpdateVirtualMachineSecurityPolicies()
 			}
 		}
 	}

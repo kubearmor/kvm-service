@@ -28,12 +28,12 @@ func addContent(content string) {
 	ScriptData = ScriptData + content + "\n"
 }
 
-func GenerateEWInstallationScript(externalWorkload, identity string) string {
+func GenerateEWInstallationScript(virtualmachine, identity string) string {
 
 	ScriptData = ""
 
 	kg.Printf("Generating the installation script =>")
-	kg.Printf("ClusterIP:%s ClusterPort:%d ewName:%s identity:%s", p.ipAddress, p.port, externalWorkload, identity)
+	kg.Printf("ClusterIP:%s ClusterPort:%d ewName:%s identity:%s", p.ipAddress, p.port, virtualmachine, identity)
 
 	addContent("#!/bin/bash")
 	addContent("set -e")

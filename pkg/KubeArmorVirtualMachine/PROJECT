@@ -2,6 +2,6 @@ domain: kubearmor.com
 repo: k8s
 resources:
 - group: security
-  kind: KubeArmorExternalWorkload
+  kind: KubeArmorVirtualMachine
   version: v1
 version: "2"

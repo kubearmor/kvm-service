@@ -158,12 +158,12 @@ func IsIdentityServing(identity string) int {
 			return 1
 		}
 	}
-	kg.Printf("Recieved the invalid identity:%s", identity)
+	kg.Printf("Received the invalid identity:%s", identity)
 	return 0
 }
 
 func (s *KVMServer) RegisterAgentIdentity(ctx context.Context, in *pb.AgentIdentity) (*pb.Status, error) {
-	kg.Print("Recieved the connection from the identity")
+	kg.Print("Received the connection from the identity")
 	var identity uint16
 
 	if IsIdentityServing(in.Identity) == 0 {
@@ -173,7 +173,7 @@ func (s *KVMServer) RegisterAgentIdentity(ctx context.Context, in *pb.AgentIdent
 
 	value, _ := strconv.Atoi(in.Identity)
 	identity = uint16(value)
-	kg.Printf("New connection recieved RegisterAgentIdentity: %v podIp: %v", identity, podIp)
+	kg.Printf("New connection received RegisterAgentIdentity: %v podIp: %v", identity, podIp)
 
 	err := EtcdClient.EtcdPutWithTTL(context.Background(), ct.KvmSvcIdentitiToPodIps+in.Identity, podIp)
 	if err != nil {

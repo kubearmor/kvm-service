@@ -6,16 +6,16 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
-  name: kubearmorexternalworkloads.security.kubearmor.com
+  name: kubearmorvirtualmachines.security.kubearmor.com
 spec:
   group: security.kubearmor.com
   names:
-    kind: KubeArmorExternalWorkload
-    listKind: KubeArmorExternalWorkloadList
-    plural: kubearmorexternalworkloads
+    kind: KubeArmorVirtualMachine
+    listKind: KubeArmorVirtualMachineList
+    plural: kubearmorvirtualmachines
     shortNames:
-    - kew
-    singular: kubearmorexternalworkload
+    - kvm
+    singular: kubearmorvirtualmachine
   scope: Cluster
   versions:
   - name: v1
@@ -35,16 +35,16 @@ spec:
           metadata:
             type: object
           status:
-            description: Status is the most recent status of the external KubeArmor
-              workload. It is a read-only field.
+            description: Status is the most recent status of the KubeArmor Virtual 
+              Machine. It is a read-only field.
             properties:
               id:
-                description: ID is the numeric identity allocated for the external
-                  workload.
+                description: ID is the numeric identity allocated for the virtual
+                  machine.
                 format: int64
                 type: integer
               ip:
-                description: IP is the IP address of the workload. Empty if the workload
+                description: IP is the IP address of the virtual machine. Empty if the virtual machine
                   has not registered.
                 type: string
             type: object

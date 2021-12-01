@@ -6,10 +6,10 @@ cluster_clean() {
 
     kubectl delete -f /home/vagrant/KVMService/KVMService/operator/kvmsoperator.yaml
 
-    CRDS=`kubectl get kew | awk '(NR>1)' |awk '{print $1}'`
+    CRDS=`kubectl get kvm | awk '(NR>1)' |awk '{print $1}'`
     echo "MDEBUG: $CRDS"
 
-    kubectl delete kew $CRDS
+    kubectl delete kvm $CRDS
 
     KHPS=`kubectl get khp | awk '(NR>1)' |awk '{print $1}'`
     echo "MDEBUG:$KHPS"
@@ -18,7 +18,7 @@ cluster_clean() {
 
     sudo rm /mnt/gen-script/*
 
-    kubectl get kew 
+    kubectl get kvm
     kubectl get khp
 }
 

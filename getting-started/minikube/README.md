@@ -34,11 +34,11 @@ The above confirms on the minikube up and running.
 Use `minikube status` to check the status of minikube cluster.
 
 ## Apply VM and HostPolicy CRDs
-After starting minikube, apply the VM/ExternalWorkload and Hostpolicy CRD using below commands.
+After starting minikube, apply the Virtual Machine and Hostpolicy CRD using below commands.
 
 ```
-$ minikube kubectl -- apply -f ../../deployments/CRD/KubeArmorExternalWorkloadPolicy.yaml 
-customresourcedefinition.apiextensions.k8s.io/kubearmorexternalworkloads.security.kubearmor.com created
+$ minikube kubectl -- apply -f ../../deployments/CRD/KubeArmorVirtualMachinePolicy.yaml 
+customresourcedefinition.apiextensions.k8s.io/kubearmorvirtualmachines.security.kubearmor.com created
 $ 
 $ minikube kubectl -- apply -f ../../deployments/CRD/KubeArmorHostPolicy.yaml 
 customresourcedefinition.apiextensions.k8s.io/kubearmorhostpolicies.security.kubearmor.com created
@@ -98,32 +98,32 @@ $
 
 As we could see in above output, the opertor and kvmpods are up and running.
 
-## Configure new vm/workload
-To configure a new VM/workload, apply a yaml with new vm CRD.
+## Configure new vm
+To configure a new VM, apply a yaml with new vm CRD.
 Some example yamls can be found under (https://github.com/kubearmor/KVMService/tree/main/examples)
 
-Run below command to configure a new workload in kvmsoperator.
+Run below command to configure a new vm in kvmsoperator.
 ```
-$ minikube kubectl -- apply -f ../../examples/kewpolicy.yaml 
-kubearmorexternalworkloadpolicy.security.kubearmor.com/external-workload-01 created
+$ minikube kubectl -- apply -f ../../examples/kvmpolicy.yaml 
+kubearmorvirtualmachinepolicy.security.kubearmor.com/kvm1 created
 $ 
 ```
-To confirm on the configuration of new workload, refer kvmsoperator logs. 
+To confirm on the configuration of new vm, refer kvmsoperator logs. 
 ```
 $ minikube kubectl -- logs kvmsoperator-7cf87cc795-jkfm2 --namespace kube-system
 2021-10-26 11:25:56.019147      INFO    Initialized the ETCD client!
 2021-10-26 11:25:56.019210      INFO    Initiliazing the CLIHandler => Port:32770
 2021-10-26 11:25:56.019222      INFO    Successfully initialized the KVMSOperator with args => (clusterIp:'192.168.49.2' clusterPort:40400
-2021-10-26 11:25:57.020349      INFO    Started the external workload CRD watcher
+2021-10-26 11:25:57.020349      INFO    Started the Virtual Machine CRD watcher
 2021-10-26 11:25:57.020439      INFO    Started the CLI Handler
 2021-10-26 11:25:57.020862      INFO    Successfully CLIHandler Listening on port 32770
-2021-10-26 11:32:36.041556      INFO    Recieved external workload policy request!!!
-2021-10-26 11:32:36.041615      INFO    New External Workload CRD is configured! => external-workload-01
-2021-10-26 11:32:36.041642      INFO    Mappings identity to ewName=> map[65168:external-workload-01]
-2021-10-26 11:32:36.041654      INFO    ETCD: putting key:/kvm-opr-map-identity-to-ewname/65168 value:external-workload-01
-2021-10-26 11:32:36.042456      INFO    Mappings ewName to identity => map[external-workload-01:65168]
-2021-10-26 11:32:36.042493      INFO    ETCD: putting key:/kvm-opr-map-ewname-to-identity/external-workload-01 value:65168
-2021-10-26 11:32:36.042938      INFO    Generated the identity(external-workload-01) for this CRD:65168
+2021-10-26 11:32:36.041556      INFO    Received Virtual Machine policy request!!!
+2021-10-26 11:32:36.041615      INFO    New Virtual Machine CRD is configured! => kvm1
+2021-10-26 11:32:36.041642      INFO    Mappings identity to ewName=> map[65168:kvm1]
+2021-10-26 11:32:36.041654      INFO    ETCD: putting key:/kvm-opr-map-identity-to-ewname/65168 value:kvm1
+2021-10-26 11:32:36.042456      INFO    Mappings ewName to identity => map[kvm1:65168]
+2021-10-26 11:32:36.042493      INFO    ETCD: putting key:/kvm-opr-map-ewname-to-identity/kvm1 value:65168
+2021-10-26 11:32:36.042938      INFO    Generated the identity(kvm1) for this CRD:65168
 2021-10-26 11:32:36.042958      INFO    Updating identity to label map identity:65168 label:abc=xyz
 2021-10-26 11:32:36.042966      INFO    ETCD: putting key:/kvm-opr-identity-to-label-maps/65168 value:abc=xyz
 2021-10-26 11:32:36.043496      INFO    ETCD: putting key:/kvm-opr-label-to-identities-map/abc=xyz value:[65168]
@@ -151,8 +151,8 @@ Status:
 ## Download installation script to host machine using karmor
 With the configured name, download the installation script to host machine using below karmor command.
 ```
-$ ./karmor vm -n external-workload-01
+$ ./karmor vm -n kvm1
 
-VM installation script copied to external-workload-01.sh
+VM installation script copied to kvm1.sh
 $ 
 ```

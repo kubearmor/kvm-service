@@ -40,17 +40,17 @@ deploy: manifests
 	cd config/manager && kustomize edit set image controller=${IMG}
 	kustomize build config/default | kubectl apply -f -
 
-#security.kubearmor.com_kubearmorexternalworkload.yaml
+#security.kubearmor.com_kubearmorvirtualmachine.yaml
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-	cp config/crd/bases/security.kubearmor.com_kubearmorexternalworkload.yaml ../../helm/templates/security.kubearmor.com_kubearmorexternalworkload.yaml
-	cp config/crd/bases/security.kubearmor.com_kubearmorexternalworkload.yaml ../../deployments/CRD/KubeArmorExternalWorkload.yaml
+	cp config/crd/bases/security.kubearmor.com_kubearmorvirtualmachine.yaml ../../helm/templates/security.kubearmor.com_kubearmorvirtualmachine.yaml
+	cp config/crd/bases/security.kubearmor.com_kubearmorvirtualmachine.yaml ../../deployments/CRD/KubeArmorVirtualMachine.yaml
 
 # Generate deployments
 deployment: manifests
 	cd config/manager && kustomize edit set image controller=${IMG}
-	kustomize build config/default > /tmp/KubeArmorExternalWorkload.yaml
+	kustomize build config/default > /tmp/KubeArmorVirtualMachine.yaml
 
 # Run go fmt against code
 fmt:
@@ -91,4 +91,4 @@ CONTROLLER_GEN=$(shell which controller-gen)
 endif
 
 clean:
-	rm -rf bin go.sum cover.out /tmp/KubeArmorExternalWorkload.yaml
+	rm -rf bin go.sum cover.out /tmp/KubeArmorVirtualMachine.yaml

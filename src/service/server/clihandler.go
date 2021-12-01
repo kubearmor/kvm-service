@@ -16,7 +16,7 @@ type CLIServer struct {
 }
 
 func (c *CLIServer) HandleCliRequest(ctx context.Context, request *pb.CliRequest) (*pb.ResponseStatus, error) {
-	kg.Printf("Recieved the request KVMName:%s\n", request.KvmName)
+	kg.Printf("Received the request KVMName:%s\n", request.KvmName)
 	kvPair, err := EtcdClient.EtcdGet(context.Background(), ct.KvmOprEWNameToIdentity+request.KvmName)
 	if err != nil {
 		log.Fatal(err)

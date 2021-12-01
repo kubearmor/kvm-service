@@ -248,14 +248,14 @@ func (kh *K8sHandler) CheckCustomResourceDefinition(resourceName string) bool {
 	return false
 }
 
-// WatchK8sExternalWorkloadSecurityPolicies Function
-func (kh *K8sHandler) WatchK8sExternalWorkloadSecurityPolicies() *http.Response {
+// WatchK8sVirtualMachineSecurityPolicies Function
+func (kh *K8sHandler) WatchK8sVirtualMachineSecurityPolicies() *http.Response {
 	if !kl.IsK8sEnv() { // not Kubernetes
 		return nil
 	}
 
 	if kl.IsInK8sCluster() {
-		URL := "https://" + kh.K8sHost + ":" + kh.K8sPort + "/apis/security.kubearmor.com/v1/kubearmorexternalworkloads?watch=true"
+		URL := "https://" + kh.K8sHost + ":" + kh.K8sPort + "/apis/security.kubearmor.com/v1/kubearmorvirtualmachines?watch=true"
 
 		req, err := http.NewRequest("GET", URL, nil)
 		if err != nil {
@@ -274,7 +274,7 @@ func (kh *K8sHandler) WatchK8sExternalWorkloadSecurityPolicies() *http.Response 
 	}
 
 	// kube-proxy (local)
-	URL := "http://" + kh.K8sHost + ":" + kh.K8sPort + "/apis/security.kubearmor.com/v1/kubearmorexternalworkloads?watch=true"
+	URL := "http://" + kh.K8sHost + ":" + kh.K8sPort + "/apis/security.kubearmor.com/v1/kubearmorvirtualmachines?watch=true"
 
 	// #nosec
 	if resp, err := http.Get(URL); err == nil {
