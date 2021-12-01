@@ -9,6 +9,6 @@ spec:
   severity: 5
   file:
     matchPaths:
-    - path: /etc/passwd # cat /etc/passwd
+    - path: /proc/cpuinfo # cat /etc/passwd
   action:
     Block
