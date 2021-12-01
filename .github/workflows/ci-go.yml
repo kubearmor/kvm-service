@@ -22,7 +22,7 @@ jobs:
           go-version: v1.17
 
       - name: Check gofmt
-        run: make -C service gofmt
+        run: make -C src/service gofmt
 
   go-sec:
     runs-on: ubuntu-latest
@@ -35,7 +35,7 @@ jobs:
           go-version: v1.17
 
       - name: Run Gosec Security Scanner
-        run: make -C service gosec
+        run: make -C src/service gosec
 
   go-lint:
     runs-on: ubuntu-latest
@@ -45,6 +45,6 @@ jobs:
 
       - name: golangci-lint
         with:
-          working-directory: service
+          working-directory: src/service
           args: --timeout=300s
         uses: golangci/golangci-lint-action@v2
