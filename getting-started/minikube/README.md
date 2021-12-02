@@ -124,24 +124,28 @@ $
 ```
 To confirm on the configuration of new workload, refer kvmsoperator logs. 
 ```
-$ minikube kubectl -- logs kvmsoperator-7cf87cc795-jkfm2 --namespace kube-system
-2021-10-26 11:25:56.019147      INFO    Initialized the ETCD client!
-2021-10-26 11:25:56.019210      INFO    Initiliazing the CLIHandler => Port:32770
-2021-10-26 11:25:56.019222      INFO    Successfully initialized the KVMSOperator with args => (clusterIp:'192.168.49.2' clusterPort:40400
-2021-10-26 11:25:57.020349      INFO    Started the external workload CRD watcher
-2021-10-26 11:25:57.020439      INFO    Started the CLI Handler
-2021-10-26 11:25:57.020862      INFO    Successfully CLIHandler Listening on port 32770
-2021-10-26 11:32:36.041556      INFO    Recieved external workload policy request!!!
-2021-10-26 11:32:36.041615      INFO    New External Workload CRD is configured! => external-workload-01
-2021-10-26 11:32:36.041642      INFO    Mappings identity to ewName=> map[65168:external-workload-01]
-2021-10-26 11:32:36.041654      INFO    ETCD: putting key:/kvm-opr-map-identity-to-ewname/65168 value:external-workload-01
-2021-10-26 11:32:36.042456      INFO    Mappings ewName to identity => map[external-workload-01:65168]
-2021-10-26 11:32:36.042493      INFO    ETCD: putting key:/kvm-opr-map-ewname-to-identity/external-workload-01 value:65168
-2021-10-26 11:32:36.042938      INFO    Generated the identity(external-workload-01) for this CRD:65168
-2021-10-26 11:32:36.042958      INFO    Updating identity to label map identity:65168 label:abc=xyz
-2021-10-26 11:32:36.042966      INFO    ETCD: putting key:/kvm-opr-identity-to-label-maps/65168 value:abc=xyz
-2021-10-26 11:32:36.043496      INFO    ETCD: putting key:/kvm-opr-label-to-identities-map/abc=xyz value:[65168]
+$ minikube kubectl -- logs svc/kvmsoperator --namespace kube-system
+2021-12-02 10:42:20.337325      INFO    Establishing connection with etcd service => http://10.97.148.192:2379
+2021-12-02 10:42:20.338653      INFO    Initialized the ETCD client!
+2021-12-02 10:42:20.338694      INFO    Successfully initialized KVMSOperator
+2021-12-02 10:42:21.339010      INFO    Started the external workload CRD watcher
 $ 
+$ minikube kubectl -- logs svc/kvmservice --namespace kube-system | grep -v level
+2021-12-02 10:43:03.866077      INFO    BUILD-INFO: commit:, branch: , date: , version: 
+2021-12-02 10:43:03.876092      INFO    kvmservice external IP => 10.101.41.83
+2021-12-02 10:43:03.876125      INFO    Initializing all the KVMS daemon attributes
+2021-12-02 10:43:03.878345      INFO    Establishing connection with etcd service => http://10.97.148.192:2379
+2021-12-02 10:43:03.880047      INFO    Initialized the ETCD client!
+2021-12-02 10:43:03.880091      INFO    Initiliazing the KVMServer => podip:192.168.49.2 clusterIP:10.101.41.83 clusterPort:32770
+2021-12-02 10:43:03.880101      INFO    KVMService attributes got initialized
+
+2021-12-02 10:43:04.881037      INFO    K8S Client is successfully initialize
+2021-12-02 10:43:04.881118      INFO    Watcher triggered for the host policies
+2021-12-02 10:43:04.881179      INFO    Triggered the keepalive ETCD client
+2021-12-02 10:43:04.881210      INFO    Starting gRPC server
+2021-12-02 10:43:04.881770      INFO    Successfully KVMServer Listening on port 32770
+$ 
+
 ```
 
 ## Download installation script to host machine using karmor
