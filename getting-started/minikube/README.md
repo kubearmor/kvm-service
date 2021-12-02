@@ -50,6 +50,11 @@ Status:
                 router: no errors
                 loadbalancer emulator: no errors
 ```
+## Deploy etcd in minikube
+Deploy etcd in minikube. ETCD is used for common data storage across pods.
+```
+$ minikube kubectl -- apply -f ../../deployments/etcd.yml
+```
 
 ## Apply VM and HostPolicy CRDs
 After starting minikube, apply the VM/ExternalWorkload and Hostpolicy CRD using below commands.
@@ -64,12 +69,6 @@ $
 ```
 
 Once all CRDs are applied, the next step is to deploy kvmsoperator and kvmservice.
-
-## Deploy etcd in minikube
-Deploy etcd in minikube. ETCD is used for common data storage across pods.
-```
-$ minikube kubectl -- apply -f ../../deployments/etcd.yml
-```
 
 ## Deploy kvmsoperator and kvmservice in minikube
 Once all modifications are complete, deploy kvmsoperator and kvmservice using below commands.
