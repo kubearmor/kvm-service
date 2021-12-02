@@ -68,7 +68,7 @@ Once all CRDs are applied, the next step is to deploy kvmsoperator and kvmservic
 ## Deploy etcd in minikube
 Deploy etcd in minikube. ETCD is used for common data storage across pods.
 ```
-$ minikube kubectl -- apply -f ../../deployments/CRD/etcd.yaml
+$ minikube kubectl -- apply -f ../../deployments/etcd.yaml
 ```
 
 ## Deploy kvmsoperator and kvmservice in minikube
