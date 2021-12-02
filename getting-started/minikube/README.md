@@ -33,6 +33,24 @@ $
 The above confirms on the minikube up and running. 
 Use `minikube status` to check the status of minikube cluster.
 
+## Exposing ports to host machine
+To expose minikube ports to host machine, open a new tab and run `minikube tunnel`.
+Minikube will start exposing all cluster ports through minikube IP and continuous print will be displayed as shown below.
+
+```
+$ minikube tunnel
+Status:
+        machine: minikube
+        pid: 206833
+        route: 10.96.0.0/12 -> 192.168.49.2
+        minikube: Running
+        services: [kvmservice]
+    errors: 
+                minikube: no errors
+                router: no errors
+                loadbalancer emulator: no errors
+```
+
 ## Apply VM and HostPolicy CRDs
 After starting minikube, apply the VM/ExternalWorkload and Hostpolicy CRD using below commands.
 
@@ -47,26 +65,20 @@ $
 
 Once all CRDs are applied, the next step is to deploy kvmsoperator and kvmservice.
 
-## Modify yamls
-Before deploying the kvmsoperator and kvmservice, the minikube IP needs to be updated on the yaml.
-Run below command to get minikube IP.
-```
-$ minikube ip
-192.168.49.2
-$ 
-```
-Update this ip in extrnalIPs and ipAddress fields of the yaml.
+## Deploy etcd in minikube
+Deploy etcd in minikube. ETCD is used for common data storage across pods.
+$ minikube kubectl -- apply -f ../../deployments/CRD/etcd.yaml
 
 ## Deploy kvmsoperator and kvmservice in minikube
 Once all modifications are complete, deploy kvmsoperator and kvmservice using below commands.
 ```
-$ minikube kubectl -- apply -f kvmsoperator.yaml 
+$ minikube kubectl -- apply -f ../../src/operator/kvmsoperator.yaml
 serviceaccount/kvmsoperator created
 clusterrolebinding.rbac.authorization.k8s.io/kvmsoperator created
 service/kvmsoperator created
 deployment.apps/kvmsoperator created
 $ 
-$ minikube kubectl -- apply -f kvmservice.yaml 
+$ minikube kubectl -- apply -f ../../src/service/kvmservice.yaml 
 serviceaccount/kvmservice created
 clusterrolebinding.rbac.authorization.k8s.io/kvmservice created
 service/kvmservice created
@@ -130,29 +142,10 @@ $ minikube kubectl -- logs kvmsoperator-7cf87cc795-jkfm2 --namespace kube-system
 $ 
 ```
 
-## Exposing ports to host machine
-To expose minikube ports to host machine, open a new tab and run `minikube tunnel`.
-Minikube will start exposing all cluster ports through minikube IP and continuous print will be displayed as shown below.
-
-```
-$ minikube tunnel
-Status:
-        machine: minikube
-        pid: 206833
-        route: 10.96.0.0/12 -> 192.168.49.2
-        minikube: Running
-        services: [kvmservice]
-    errors: 
-                minikube: no errors
-                router: no errors
-                loadbalancer emulator: no errors
-```
-
 ## Download installation script to host machine using karmor
 With the configured name, download the installation script to host machine using below karmor command.
 ```
-$ ./karmor vm -n external-workload-01
-
+$ ./karmor vm -v external-workload-01
 VM installation script copied to external-workload-01.sh
 $ 
 ```
