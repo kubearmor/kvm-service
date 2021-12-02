@@ -90,23 +90,26 @@ $
 
 To check the pods/services running, use the below command.
 ```
-$ minikube kubectl -- get pods,svc -A 
-NAMESPACE     NAME                                   READY   STATUS    RESTARTS      AGE
-kube-system   pod/coredns-78fcd69978-4mtbv           1/1     Running   0             29m
-kube-system   pod/etcd-minikube                      1/1     Running   0             30m
-kube-system   pod/kube-apiserver-minikube            1/1     Running   0             30m
-kube-system   pod/kube-controller-manager-minikube   1/1     Running   0             30m
-kube-system   pod/kube-proxy-cttzc                   1/1     Running   0             29m
-kube-system   pod/kube-scheduler-minikube            1/1     Running   0             30m
-kube-system   pod/kvmservice-7887c65686-l9wwk        1/1     Running   0             80s
-kube-system   pod/kvmsoperator-7cf87cc795-jkfm2      1/1     Running   0             85s
-kube-system   pod/storage-provisioner                1/1     Running   1 (29m ago)   30m
+$ minikube kubectl -- get pods,svc -A
+NAMESPACE     NAME                                   READY   STATUS    RESTARTS        AGE
+kube-system   pod/coredns-78fcd69978-49sbp           1/1     Running   0               5m14s
+kube-system   pod/etcd-minikube                      1/1     Running   0               5m26s
+kube-system   pod/etcd0                              1/1     Running   0               4m38s
+kube-system   pod/kube-apiserver-minikube            1/1     Running   0               5m26s
+kube-system   pod/kube-controller-manager-minikube   1/1     Running   0               5m26s
+kube-system   pod/kube-proxy-6cw8b                   1/1     Running   0               5m14s
+kube-system   pod/kube-scheduler-minikube            1/1     Running   0               5m26s
+kube-system   pod/kvmservice-78679f4d4b-qq8dq        1/1     Running   0               3m11s
+kube-system   pod/kvmsoperator-d7696c8d7-s7mnf       1/1     Running   0               4m2s
+kube-system   pod/storage-provisioner                1/1     Running   1 (4m43s ago)   5m25s
 
 NAMESPACE     NAME                   TYPE           CLUSTER-IP      EXTERNAL-IP    PORT(S)                  AGE
-default       service/kubernetes     ClusterIP      10.96.0.1       <none>         443/TCP                  30m
-kube-system   service/kube-dns       ClusterIP      10.96.0.10      <none>         53/UDP,53/TCP,9153/TCP   30m
-kube-system   service/kvmservice     LoadBalancer   10.108.40.148   192.168.49.2   4040:31916/TCP           80s
-kube-system   service/kvmsoperator   ClusterIP      10.96.125.248   <none>         32770/TCP                85s
+default       service/kubernetes     ClusterIP      10.96.0.1       <none>         443/TCP                  5m28s
+kube-system   service/etcd-client    ClusterIP      10.98.233.98    <none>         2379/TCP                 4m38s
+kube-system   service/etcd0          ClusterIP      10.97.148.192   <none>         2379/TCP,2380/TCP        4m38s
+kube-system   service/kube-dns       ClusterIP      10.96.0.10      <none>         53/UDP,53/TCP,9153/TCP   5m27s
+kube-system   service/kvmservice     LoadBalancer   10.101.41.83    10.101.41.83   32770:30201/TCP          3m11s
+kube-system   service/kvmsoperator   ClusterIP      10.104.57.14    <none>         40400/TCP                4m2s
 $ 
 ```
 
@@ -149,6 +152,9 @@ $
 ```
 
 ## Download installation script to host machine using karmor
+Install karmor with instruction from the link below.
+https://github.com/kubearmor/kubearmor-client/blob/main/README.md
+
 With the configured name, download the installation script to host machine using below karmor command.
 ```
 $ ./karmor vm -v external-workload-01
