@@ -21,8 +21,11 @@ jobs:
         with:
           go-version: v1.17
 
-      - name: Check gofmt
+      - name: Check gofmt on src/service
         run: make -C src/service gofmt
+
+      - name: Check gofmt on src/operator
+        run: make -C src/operator gofmt
 
   go-sec:
     runs-on: ubuntu-latest
@@ -34,8 +37,11 @@ jobs:
         with:
           go-version: v1.17
 
-      - name: Run Gosec Security Scanner
+      - name: Run Gosec Security Scanner on src/service
         run: make -C src/service gosec
+
+      - name: Run Gosec Security Scanner on src/operator
+        run: make -C src/operator gosec
 
   go-lint:
     runs-on: ubuntu-latest
@@ -43,8 +49,14 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v2
 
-      - name: golangci-lint
+      - name: golangci-lint on src/service
         with:
           working-directory: src/service
+          args: --timeout=300s
+        uses: golangci/golangci-lint-action@v2
+
+      - name: golangci-lint on src/operator
+        with:
+          working-directory: src/operator
           args: --timeout=300s
         uses: golangci/golangci-lint-action@v2

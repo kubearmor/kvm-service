@@ -25,12 +25,14 @@ func (dm *KVMSOperator) UpdateVirtualMachineSecurityPolicies() {
 	dm.VirtualMachineSecurityPoliciesLock.Lock()
 	defer dm.VirtualMachineSecurityPoliciesLock.Unlock()
 
-	secPolicies := []tp.VirtualMachineSecurityPolicy{}
+	/* Unused code
+	secPolicies := []tp.ExternalWorkloadSecurityPolicy{}
 
 	for _, policy := range dm.VirtualMachineSecurityPolicies {
 		// TODO:
 		secPolicies = append(secPolicies, policy)
 	}
+	*/
 }
 func Find(identities []uint16, identity uint16) (int, bool) {
 	for i, item := range identities {
@@ -107,7 +109,7 @@ func (dm *KVMSOperator) UpdateIdentityLabelsMap(identity uint16, label string) {
 
 func (dm *KVMSOperator) GenerateVirtualMachineIdentity(name string, labels map[string]string) uint16 {
 	for {
-		identity := uint16(rand.Uint32())
+		identity := uint16(rand.Uint32()) // #nosec
 		if dm.MapIdentityToEWName[identity] == "" {
 			dm.MapIdentityToEWName[identity] = name
 			dm.MapEWNameToIdentity[name] = identity
@@ -142,7 +144,7 @@ func (dm *KVMSOperator) GetVirtualMachineLabel(identity uint16) string {
 
 func (dm *KVMSOperator) GetVirtualMachineAllLabels() []string {
 	var VirtualMachineLabels []string
-	for label, _ := range dm.MapLabelToIdentities {
+	for label := range dm.MapLabelToIdentities {
 		VirtualMachineLabels = append(VirtualMachineLabels, label)
 	}
 	return VirtualMachineLabels
