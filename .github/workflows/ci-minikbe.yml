@@ -1,0 +1,85 @@
+name: ci-minikube
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+    pull_request: 
+      branches:
+        - main
+        - dev
+
+jobs:
+  build:
+    name: Auto-testing Framework / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest,ubuntu-18.04]
+    steps:
+      - name: Check Docker Version
+        run: uname -r
+      
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      
+      - uses: actions/checkout@v2
+
+      - name: Install Minikube
+        run: |
+          set -x
+          curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube_latest_amd64.deb
+          sudo dpkg -i minikube_latest_amd64.deb
+          rm minikube_latest_amd64.deb
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          sudo mv kubectl /usr/bin
+          sudo chmod 755 /usr/bin/kubectl
+      
+      - name: Start Minikube
+        run: minikube start
+      
+      - name: Apply VM and Hostpolicy CRD
+        run: |
+          sleep 10
+          kubectl apply -f https://raw.githubusercontent.com/kubearmor/kvm-service/${GITHUB_REF##*/}/deployments/etcd.yml
+          kubectl apply -f https://raw.githubusercontent.com/kubearmor/kvm-service/${GITHUB_REF##*/}/deployments/CRD/KubeArmorExternalWorkload.yaml
+          kubectl apply -f https://raw.githubusercontent.com/kubearmor/kvm-service/${GITHUB_REF##*/}/deployments/CRD/KubeArmorHostPolicy.yaml
+      
+      - name: Check the ip
+        run: minikube ip
+      
+      - name: Deploy kvmsoperator and kvmservice in minikube
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/kubearmor/kvm-service/${GITHUB_REF##*/}/src/operator/kvmsoperator.yaml
+          kubectl apply -f https://raw.githubusercontent.com/kubearmor/kvm-service/${GITHUB_REF##*/}/src/service/kvmservice.yaml
+      
+      - name: Configure new VM
+        run: minikube kubectl -- apply -f ./examples/kewpolicy.yaml
+
+#       - name: Checking the logs
+#         run: kubectl logs $(minikube kubectl -- get pods,svc -A | grep pod/kvmsoperator | cut -d ' ' -f 4 | cut -d '/' -f 2) --namespace kube-system
+      
+      - name: Making Karmor
+        run: |
+          set -x
+          pushd /tmp
+          git clone https://github.com/kubearmor/kubearmor-client
+          cd kubearmor-client
+          make build
+          popd
+
+      - name: Exposing host to machine
+        run : minikube tunnel &
+
+      - name: Running karmor
+        run: |
+          sleep 5
+          cd /tmp/kubearmor-client
+          ./karmor vm -v kvm1
+      
+      - name: Run The Script
+        run: bash /tmp/kubearmor-client/kvm1.sh
