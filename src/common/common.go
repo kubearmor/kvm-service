@@ -347,7 +347,7 @@ func GetEtcdEndPoint(serviceAccoutName string) string {
 		break
 	}
 
-	etcdClusterIP = "http://" + etcdClusterIP + ":2379"
+	etcdClusterIP = "https://" + etcdClusterIP + ":2379"
 
 	kg.Printf("Establishing connection with etcd service => %v", etcdClusterIP)
 	return etcdClusterIP

@@ -15,10 +15,6 @@ var (
 	KubeProxyK8sPort   = "8001"
 	KCLIPort           = "32770"
 
-	EtcdCertFile  = "/etc/kubernetes/pki/etcd/server.crt"
-	EtcdKeyFile   = "/etc/kubernetes/pki/etcd/server.key"
-	EtcdCAFile    = "/etc/kubernetes/pki/etcd/ca.crt"
-	EtcdEndPoints = "https://10.0.2.15:2379"
 	EtcdClientTTL = 10
 
 	EtcdServiceAccountName = "etcd0"
@@ -27,4 +23,8 @@ var (
 
 	EtcdNamespace       = os.Getenv("ETCD_NAMESPACE")
 	KvmServiceNamespace = os.Getenv("KVMSERVICE_NAMESPACE")
+
+	ServerCertPath = "/var/certs/tls.crt"
+	ServerKeyPath  = "/var/certs/tls.key"
+	CaCertPath     = "/var/ca-certs/ca.cert"
 )

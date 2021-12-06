@@ -4,8 +4,10 @@
 package genscript
 
 import (
+	"io/ioutil"
 	"strconv"
 
+	ct "github.com/kubearmor/KVMService/src/constants"
 	kg "github.com/kubearmor/KVMService/src/log"
 )
 
@@ -17,11 +19,18 @@ var (
 type GenScriptParams struct {
 	port      uint16
 	ipAddress string
+	CaCert    string
 }
 
 func InitGenScript(Port uint16, IpAddress string) {
 	p.port = Port
 	p.ipAddress = IpAddress
+
+	byteData, err := ioutil.ReadFile(ct.CaCertPath)
+	if err != nil {
+		kg.Err(err.Error())
+	}
+	p.CaCert = "\"" + string(byteData) + "\""
 }
 
 func addContent(content string) {
@@ -44,6 +53,9 @@ func GenerateEWInstallationScript(externalWorkload, identity string) string {
 	contentStr := "CLUSTER_PORT=" + strconv.FormatUint(uint64(p.port), 10)
 	addContent(contentStr)
 	contentStr = "CLUSTER_IP=" + p.ipAddress
+	addContent(contentStr)
+	addContent("")
+	contentStr = "CA_CERT=" + p.CaCert
 	addContent(contentStr)
 	addContent("")
 
