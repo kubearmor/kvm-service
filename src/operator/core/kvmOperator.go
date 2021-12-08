@@ -21,7 +21,7 @@ import (
 // ClientConn is the wrapper for a grpc client conn
 type ClientConn struct {
 	*grpc.ClientConn
-	unhealthy bool
+	//	unhealthy bool
 }
 
 // ====================== //
@@ -89,7 +89,7 @@ func (dm *KVMSOperator) DestroyKVMSOperator() {
 	kg.Print("Waiting for remaining routine terminations")
 
 	kg.Print("Deleting the external worklaods keys from etcd")
-	dm.EtcdClient.EtcdDelete(context.TODO(), ct.KvmOprLabelToIdentities)
+	_ = dm.EtcdClient.EtcdDelete(context.TODO(), ct.KvmOprLabelToIdentities)
 
 	dm.WgOperatorDaemon.Wait()
 }

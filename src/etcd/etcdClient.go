@@ -10,6 +10,7 @@ import (
 	kc "github.com/kubearmor/KVMService/src/common"
 	ct "github.com/kubearmor/KVMService/src/constants"
 	kg "github.com/kubearmor/KVMService/src/log"
+	"go.etcd.io/etcd/client/pkg/v3/transport"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
@@ -19,24 +20,22 @@ type EtcdClient struct {
 }
 
 func NewEtcdClient() *EtcdClient {
-	/* TODO : To enable certificates in cluster and validate the same
-	 * Works fine with minikube
 	tlsInfo := transport.TLSInfo{
-		CertFile:      ct.EtcdCertFile,
-		KeyFile:       ct.EtcdKeyFile,
-		TrustedCAFile: ct.EtcdCAFile,
+		CertFile:      ct.ServerCertPath,
+		KeyFile:       ct.ServerKeyPath,
+		TrustedCAFile: ct.CaCertPath,
+		ServerName:    "0.0.0.0",
 	}
 	tlsConfig, err := tlsInfo.ClientConfig()
 	if err != nil {
 		kg.Err(err.Error())
 		return nil
 	}
-	*/
 
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   []string{kc.GetEtcdEndPoint(ct.EtcdServiceAccountName)},
 		DialTimeout: 5 * time.Second,
-		//TLS:         tlsConfig,
+		TLS:         tlsConfig,
 	})
 	if err != nil {
 		kg.Err(err.Error())

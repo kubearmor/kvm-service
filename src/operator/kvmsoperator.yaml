@@ -65,6 +65,12 @@ spec:
           - name: ETCD_NAMESPACE
             value: "kube-system"
         volumeMounts:
+        - name: certs
+          mountPath: /var/certs/
+          readOnly: true
+        - name: ca-cert
+          mountPath: /var/ca-certs/
+          readOnly: true
         - name: docker-sock-path # docker (read-only)
           mountPath: /var/run/docker.sock
           readOnly: true
@@ -98,6 +104,12 @@ spec:
         terminationMessagePath: /dev/termination-log
       terminationGracePeriodSeconds: 30
       volumes:
+      - name: certs
+        secret:
+          secretName: server-certs
+      - name: ca-cert
+        secret:
+          secretName: ca-cert
       - name: docker-sock-path # docker
         hostPath:
           path: /var/run/docker.sock
