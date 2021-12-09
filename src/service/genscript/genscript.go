@@ -29,6 +29,7 @@ func InitGenScript(Port uint16, IpAddress string) {
 	byteData, err := ioutil.ReadFile(ct.CaCertPath)
 	if err != nil {
 		kg.Err(err.Error())
+		return
 	}
 	p.CaCert = "\"" + string(byteData) + "\""
 }
