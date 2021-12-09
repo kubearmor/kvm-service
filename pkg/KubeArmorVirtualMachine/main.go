@@ -14,8 +14,8 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 
-	securityv1 "github.com/kubearmor/KubeArmor/pkg/KubeArmorExternalWorkload/api/v1"
-	"github.com/kubearmor/KubeArmor/pkg/KubeArmorExternalWorkload/controllers"
+	securityv1 "github.com/kubearmor/KubeArmor/pkg/KubeArmorVirtualMachine/api/v1"
+	"github.com/kubearmor/KubeArmor/pkg/KubeArmorVirtualMachine/controllers"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -54,12 +54,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.KubeArmorExternalWorkloadReconciler{
+	if err = (&controllers.KubeArmorVirtualMachineReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("KubeArmorExternalWorkload"),
+		Log:    ctrl.Log.WithName("controllers").WithName("KubeArmorVirtualMachine"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "KubeArmorExternalWorkload")
+		setupLog.Error(err, "unable to create controller", "controller", "KubeArmorVirtualMachine")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

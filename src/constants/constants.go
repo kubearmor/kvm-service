@@ -10,7 +10,7 @@ var (
 	KvmOprIdentityToLabel   = "/kvm-opr-identity-to-label-maps/"
 
 	KhpCRDName         = "kubearmorhostpolicies"
-	KewCRDName         = "kubearmorexternalworkloads"
+	KvmCRDName         = "kubearmorvirtualmachines"
 	LocalHostIPAddress = "127.0.0.1"
 	KubeProxyK8sPort   = "8001"
 	KCLIPort           = "32770"

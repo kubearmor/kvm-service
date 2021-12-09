@@ -57,11 +57,11 @@ $ minikube kubectl -- apply -f ../../deployments/etcd.yml
 ```
 
 ## Apply VM and HostPolicy CRDs
-After starting minikube, apply the VM/ExternalWorkload and Hostpolicy CRD using below commands.
+After starting minikube, apply the Virtual Machine and Hostpolicy CRD using below commands.
 
 ```
-$ minikube kubectl -- apply -f ../../deployments/CRD/KubeArmorExternalWorkloadPolicy.yaml 
-customresourcedefinition.apiextensions.k8s.io/kubearmorexternalworkloads.security.kubearmor.com created
+$ minikube kubectl -- apply -f ../../deployments/CRD/KubeArmorVirtualMachine.yaml 
+customresourcedefinition.apiextensions.k8s.io/kubearmorvirtualmachines.security.kubearmor.com created
 $ 
 $ minikube kubectl -- apply -f ../../deployments/CRD/KubeArmorHostPolicy.yaml 
 customresourcedefinition.apiextensions.k8s.io/kubearmorhostpolicies.security.kubearmor.com created
@@ -114,18 +114,19 @@ $
 
 As we could see in above output, the opertor and kvmpods are up and running.
 
-## Configure new vm/workload
-To configure a new VM/workload, apply a yaml with new vm CRD.
+## Configure new vm
+To configure a new VM, apply a yaml with new vm CRD.
 Some example yamls can be found under (https://github.com/kubearmor/KVMService/tree/main/examples)
 
-Run below command to configure a new workload in kvmsoperator.
+Run below command to configure a new vm in kvmsoperator.
 ```
-$ minikube kubectl -- apply -f ../../examples/kewpolicy.yaml 
-kubearmorexternalworkloadpolicy.security.kubearmor.com/external-workload-01 created
+$ minikube kubectl -- apply -f ../../examples/kvmpolicy.yaml 
+kubearmorvirtualmachinepolicy.security.kubearmor.com/kvm1 created
 $ 
 ```
-To confirm on the configuration of new workload, refer kvmsoperator logs. 
+To confirm on the configuration of new vm, refer kvmsoperator logs. 
 ```
+
 $ minikube kubectl -- logs svc/kvmsoperator --namespace kube-system
 2021-12-02 10:42:20.337325      INFO    Establishing connection with etcd service => http://10.97.148.192:2379
 2021-12-02 10:42:20.338653      INFO    Initialized the ETCD client!
@@ -156,7 +157,8 @@ https://github.com/kubearmor/kubearmor-client/blob/main/README.md
 
 With the configured name, download the installation script to host machine using below karmor command.
 ```
-$ ./karmor vm -v external-workload-01
-VM installation script copied to external-workload-01.sh
+
+$ ./karmor vm -n kvm1
+VM installation script copied to kvm1.sh
 $ 
 ```

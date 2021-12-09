@@ -25,11 +25,11 @@ $
 ```
 
 ## Apply VM and HostPolicy CRDs
-After starting minikube, apply the VM/ExternalWorkload and Hostpolicy CRD using below commands.
+After starting minikube, apply the VM and Hostpolicy CRD using below commands.
 
 ```
-$ kubectl -- apply -f ../../deployments/CRD/KubeArmorExternalWorkloadPolicy.yaml 
-customresourcedefinition.apiextensions.k8s.io/kubearmorexternalworkloads.security.kubearmor.com created
+$ kubectl -- apply -f ../../deployments/CRD/KubeVirtualMachine.yaml 
+customresourcedefinition.apiextensions.k8s.io/kubearmorvirtualmachines.security.kubearmor.com created
 $ 
 $ kubectl -- apply -f ../../deployments/CRD/KubeArmorHostPolicy.yaml 
 customresourcedefinition.apiextensions.k8s.io/kubearmorhostpolicies.security.kubearmor.com created
@@ -98,13 +98,14 @@ $
 As we could see in above output, the opertor and kvmpods are up and running.
 
 ## Configure new vm/workload
-To configure a new VM/workload, apply a yaml with new vm CRD.
+To configure a new VM, apply a yaml with new vm CRD.
 Some example yamls can be found under (https://github.com/kubearmor/KVMService/tree/main/examples)
 
 Run below command to configure a new workload in kvmsoperator.
 ```
-$ kubectl apply -f ../../examples/kewpolicy.yaml 
-kubearmorexternalworkloadpolicy.security.kubearmor.com/external-workload-01 created
+
+$ kubectl apply -f ../../examples/kvmpolicy.yaml 
+kubearmorvirtualmachine.security.kubearmor.com/kvm1 created
 $ 
 ```
 To confirm on the configuration of new workload, refer kvmsoperator logs. 
@@ -139,7 +140,7 @@ https://github.com/kubearmor/kubearmor-client/blob/main/README.md
 
 With the configured name, download the installation script to host machine using below karmor command.
 ```
-$ ./karmor vm -v external-workload-01
-VM installation script copied to external-workload-01.sh
+$ ./karmor vm -v kvm1
+VM installation script copied to kvm1.sh
 $ 
 ```
