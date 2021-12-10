@@ -46,7 +46,7 @@ jobs:
         run: |
           sleep 10
           kubectl apply -f https://raw.githubusercontent.com/kubearmor/kvm-service/${GITHUB_REF##*/}/deployments/etcd.yml
-          kubectl apply -f https://raw.githubusercontent.com/kubearmor/kvm-service/${GITHUB_REF##*/}/deployments/CRD/KubeArmorExternalWorkload.yaml
+          kubectl apply -f https://raw.githubusercontent.com/kubearmor/kvm-service/${GITHUB_REF##*/}/deployments/CRD/KubeArmorVirtualMachine.yaml
           kubectl apply -f https://raw.githubusercontent.com/kubearmor/kvm-service/${GITHUB_REF##*/}/deployments/CRD/KubeArmorHostPolicy.yaml
       
       - name: Check the ip
@@ -58,7 +58,7 @@ jobs:
           kubectl apply -f https://raw.githubusercontent.com/kubearmor/kvm-service/${GITHUB_REF##*/}/src/service/kvmservice.yaml
       
       - name: Configure new VM
-        run: minikube kubectl -- apply -f ./examples/kewpolicy.yaml
+        run: minikube kubectl -- apply -f ./examples/kvmpolicy.yaml
 
 #       - name: Checking the logs
 #         run: kubectl logs $(minikube kubectl -- get pods,svc -A | grep pod/kvmsoperator | cut -d ' ' -f 4 | cut -d '/' -f 2) --namespace kube-system

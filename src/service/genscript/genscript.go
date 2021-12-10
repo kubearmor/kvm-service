@@ -38,6 +38,7 @@ func addContent(content string) {
 	ScriptData = ScriptData + content + "\n"
 }
 
+
 func GenerateVMInstallationScript(virtualMachine string, identity string) string {
 
 	ScriptData = ""
