@@ -71,7 +71,7 @@ jobs:
 
       - name: Running karmor
         run: |
-          sleep 5
+          sleep 20
           minikube kubectl -- get pods,svc -A
           karmor vm -v kvm1
       
