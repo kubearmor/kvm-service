@@ -64,13 +64,7 @@ jobs:
 #         run: kubectl logs $(minikube kubectl -- get pods,svc -A | grep pod/kvmsoperator | cut -d ' ' -f 4 | cut -d '/' -f 2) --namespace kube-system
       
       - name: Making Karmor
-        run: |
-          set -x
-          pushd /tmp
-          git clone https://github.com/kubearmor/kubearmor-client
-          cd kubearmor-client
-          make build
-          popd
+        run: curl -sfL https://raw.githubusercontent.com/kubearmor/kubearmor-client/main/install.sh | sudo sh -s -- -b /usr/local/bin
 
       - name: Exposing host to machine
         run : minikube tunnel &
@@ -78,8 +72,7 @@ jobs:
       - name: Running karmor
         run: |
           sleep 5
-          cd /tmp/kubearmor-client
-          ./karmor vm -v kvm1
+          karmor vm -v kvm1
       
       - name: Run The Script
         run: bash /tmp/kubearmor-client/kvm1.sh
