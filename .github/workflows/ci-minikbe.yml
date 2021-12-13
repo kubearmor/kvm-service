@@ -42,20 +42,23 @@ jobs:
       - name: Start Minikube
         run: minikube start
       
+      - name: Exposing host to machine
+        run : minikube tunnel &
+      
       - name: Apply VM and Hostpolicy CRD
         run: |
           sleep 10
-          kubectl apply -f https://raw.githubusercontent.com/kubearmor/kvm-service/${GITHUB_REF##*/}/deployments/etcd.yml
-          kubectl apply -f https://raw.githubusercontent.com/kubearmor/kvm-service/${GITHUB_REF##*/}/deployments/CRD/KubeArmorVirtualMachine.yaml
-          kubectl apply -f https://raw.githubusercontent.com/kubearmor/kvm-service/${GITHUB_REF##*/}/deployments/CRD/KubeArmorHostPolicy.yaml
+          minikube kubectl -- apply -f ./deployments/etcd.yml
+          minikube kubectl -- apply -f ./deployments/CRD/KubeArmorVirtualMachine.yaml
+          minikube kubectl -- apply -f ./deployments/CRD/KubeArmorHostPolicy.yaml
       
       - name: Check the ip
         run: minikube ip
       
       - name: Deploy kvmsoperator and kvmservice in minikube
         run: |
-          kubectl apply -f https://raw.githubusercontent.com/kubearmor/kvm-service/${GITHUB_REF##*/}/src/operator/kvmsoperator.yaml
-          kubectl apply -f https://raw.githubusercontent.com/kubearmor/kvm-service/${GITHUB_REF##*/}/src/service/kvmservice.yaml
+          minikube kubectl -- apply -f ./src/operator/kvmsoperator.yaml
+          minikube kubectl -- apply -f ./src/service/kvmservice.yaml
       
       - name: Configure new VM
         run: minikube kubectl -- apply -f ./examples/kvmpolicy.yaml
@@ -63,11 +66,8 @@ jobs:
 #       - name: Checking the logs
 #         run: kubectl logs $(minikube kubectl -- get pods,svc -A | grep pod/kvmsoperator | cut -d ' ' -f 4 | cut -d '/' -f 2) --namespace kube-system
       
-      - name: Making Karmor
+      - name: Installing Karmor
         run: curl -sfL https://raw.githubusercontent.com/kubearmor/kubearmor-client/main/install.sh | sudo sh -s -- -b /usr/local/bin
-
-      - name: Exposing host to machine
-        run : minikube tunnel &
 
       - name: Running karmor
         run: |
