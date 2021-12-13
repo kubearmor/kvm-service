@@ -29,6 +29,6 @@ func (c *CLIServer) HandleCliRequest(ctx context.Context, request *pb.CliRequest
 
 	kg.Printf("Handling the CLI request for Identity '%s'\n", kvPair[ct.KvmOprEWNameToIdentity+request.KvmName])
 
-	scriptData := gs.GenerateEWInstallationScript(request.KvmName, kvPair[ct.KvmOprEWNameToIdentity+request.KvmName])
+	scriptData := gs.GenerateVMInstallationScript(request.KvmName, kvPair[ct.KvmOprEWNameToIdentity+request.KvmName])
 	return &pb.ResponseStatus{ScriptData: scriptData, StatusMsg: "Success", Status: 0}, nil
 }

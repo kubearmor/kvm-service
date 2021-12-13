@@ -2,7 +2,35 @@
 Follow the steps mentioned below to install/deploy kvmsoperator on any GKE cluster.
 Connect to any GKE cluster of your choice. 
 
-Once connected, follow the instructions below. 
+Once connected, follow the instructions below.
+
+## Addng secrets to the cluster
+Since both ETCD and kvmservice uses a server-side TLS for secure communication,
+it is required to add the tls certificates as secrets to the cluster.
+Follow the below steps to add the secrets to the cluster. 
+
+```
+$ cd certs/
+$ ./gen-script.sh 
+Certificates generated successfully 
+Generating RSA private key, 4096 bit long modulus (2 primes)
+..............................................................................................................................................................................................................................................................................................................................++++
+........++++
+e is 65537 (0x010001)
+Generating RSA private key, 4096 bit long modulus (2 primes)
+...........................................................................................................++++
+............++++
+e is 65537 (0x010001)
+Signature ok
+subject=C = IN, ST = TN, O = kubearmor, CN = kubearmor.com
+Getting CA Private Key
+Attaching certificates to k8s secrets 
+secret/server-certs created
+secret/ca-cert created
+Removing local copy of certs 
+$ 
+```
+Once all certificates are added to the cluster, continue to the next step.
 
 ## Deploying our own etcd. 
 GKE has it own etcd and also manages the same in its control pane. 
@@ -25,13 +53,13 @@ $
 ```
 
 ## Apply VM and HostPolicy CRDs
-After starting minikube, apply the VM and Hostpolicy CRD using below commands.
+Apply the VirtualMachine and Hostpolicy CRD using below commands.
 
 ```
-$ kubectl -- apply -f ../../deployments/CRD/KubeVirtualMachine.yaml 
+$ kubectl apply -f ../../deployments/CRD/KubeVirtualMachine.yaml 
 customresourcedefinition.apiextensions.k8s.io/kubearmorvirtualmachines.security.kubearmor.com created
 $ 
-$ kubectl -- apply -f ../../deployments/CRD/KubeArmorHostPolicy.yaml 
+$ kubectl apply -f ../../deployments/CRD/KubeArmorHostPolicy.yaml 
 customresourcedefinition.apiextensions.k8s.io/kubearmorhostpolicies.security.kubearmor.com created
 $ 
 ```
@@ -40,13 +68,13 @@ Once all CRDs are applied, the next step is to deploy kvmsoperator and kvmservic
 ## Deploy kvmsoperator and kvmservice in minikube
 Once all modifications are complete, deploy kvmsoperator and kvmservice using below commands.
 ```
-$ kubectl -- apply -f ../../src/operator/kvmsoperator.yaml
+$ kubectl apply -f ../../src/operator/kvmsoperator.yaml
 serviceaccount/kvmsoperator created
 clusterrolebinding.rbac.authorization.k8s.io/kvmsoperator created
 service/kvmsoperator created
 deployment.apps/kvmsoperator created
 $ 
-$ kubectl -- apply -f ../../src/service/kvmservice.yaml 
+$ kubectl apply -f ../../src/service/kvmservice.yaml 
 serviceaccount/kvmservice created
 clusterrolebinding.rbac.authorization.k8s.io/kvmservice created
 service/kvmservice created
@@ -111,7 +139,7 @@ $
 To confirm on the configuration of new workload, refer kvmsoperator logs. 
 ```
 $ kubectl logs svc/kvmsoperator -n kube-system
-2021-12-02 10:42:20.337325      INFO    Establishing connection with etcd service => http://10.92.11.30:2379
+2021-12-02 10:42:20.337325      INFO    Establishing connection with etcd service => https://10.92.11.30:2379
 2021-12-02 10:42:20.338653      INFO    Initialized the ETCD client!
 2021-12-02 10:42:20.338694      INFO    Successfully initialized KVMSOperator
 2021-12-02 10:42:21.339010      INFO    Started the external workload CRD watcher
@@ -120,7 +148,7 @@ $ kubectl logs svc/kvmservice -n kube-system | grep -v level
 2021-12-02 10:43:03.866077      INFO    BUILD-INFO: commit:, branch: , date: , version: 
 2021-12-02 10:43:03.876092      INFO    kvmservice external IP => 10.101.41.83
 2021-12-02 10:43:03.876125      INFO    Initializing all the KVMS daemon attributes
-2021-12-02 10:43:03.878345      INFO    Establishing connection with etcd service => http://10.92.11.30:2379
+2021-12-02 10:43:03.878345      INFO    Establishing connection with etcd service => https://10.92.11.30:2379
 2021-12-02 10:43:03.880047      INFO    Initialized the ETCD client!
 2021-12-02 10:43:03.880091      INFO    Initiliazing the KVMServer => podip:192.168.49.2 clusterIP:34.133.108.207 clusterPort:32770
 2021-12-02 10:43:03.880101      INFO    KVMService attributes got initialized

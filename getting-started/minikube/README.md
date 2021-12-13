@@ -33,6 +33,34 @@ $
 The above confirms on the minikube up and running. 
 Use `minikube status` to check the status of minikube cluster.
 
+## Addng secrets to the cluster
+Since both ETCD and kvmservice uses a server-side TLS for secure communication,
+it is required to add the tls certificates as secrets to the cluster.
+Follow the below steps to add the secrets to the cluster. 
+
+```
+$ cd certs/
+$ ./gen-script.sh 
+Certificates generated successfully 
+Generating RSA private key, 4096 bit long modulus (2 primes)
+..............................................................................................................................................................................................................................................................................................................................++++
+........++++
+e is 65537 (0x010001)
+Generating RSA private key, 4096 bit long modulus (2 primes)
+...........................................................................................................++++
+............++++
+e is 65537 (0x010001)
+Signature ok
+subject=C = IN, ST = TN, O = kubearmor, CN = kubearmor.com
+Getting CA Private Key
+Attaching certificates to k8s secrets 
+secret/server-certs created
+secret/ca-cert created
+Removing local copy of certs 
+$ 
+```
+Once all certificates are added to the cluster, continue to the next step.
+
 ## Exposing ports to host machine
 To expose minikube ports to host machine, open a new tab and run `minikube tunnel`.
 Minikube will start exposing all cluster ports through minikube IP and continuous print will be displayed as shown below.

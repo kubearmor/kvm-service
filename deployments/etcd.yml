@@ -33,15 +33,19 @@ spec:
     - --listen-peer-urls
     - http://0.0.0.0:2380
     - --listen-client-urls
-    - http://0.0.0.0:2379
+    - https://0.0.0.0:2379
     - --advertise-client-urls
-    - http://etcd0:2379
+    - https://etcd0:2379
     - --initial-cluster
     - etcd0=http://etcd0:2380
     - --initial-cluster-state
     - new
-    - --client-cert-auth=false
-    - --auto-tls=false
+    - --cert-file
+    - "/var/certs/tls.crt"
+    - --key-file
+    - "/var/certs/tls.key"
+    - --trusted-ca-file
+    - "/var/ca-certs/ca.cert"
     image: quay.io/coreos/etcd:latest
     name: etcd0
     securityContext:
@@ -53,12 +57,21 @@ spec:
     - containerPort: 2380
       name: server
       protocol: TCP
+    volumeMounts:
+    - name: server-certs
+      mountPath: /var/certs/
+      readOnly: true
+    - name: ca-certs
+      mountPath: /var/ca-certs/
+      readOnly: true
   restartPolicy: Always
   volumes:
-    - name: etc-kubernetes-certs
-      hostPath:
-        path: /etc/kubernetes/pki/etcd/
-        type: DirectoryOrCreate
+    - name: server-certs
+      secret:
+        secretName: server-certs
+    - name: ca-certs
+      secret:
+        secretName: ca-cert
 
 ---
 
