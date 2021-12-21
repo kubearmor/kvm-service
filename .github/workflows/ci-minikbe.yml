@@ -5,10 +5,12 @@ on:
     branches:
       - main
       - dev
+      - non-k8s
     pull_request: 
       branches:
         - main
         - dev
+        - non-k8s
 
 jobs:
   build:
