@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	PolicyChan  chan tp.K8sKubeArmorHostPolicyEventWithIdentity
+	PolicyChan  chan tp.KubeArmorHostPolicyEventWithIdentity
 	ClusterIp   string
 	Clusterport string
 	podIp       string
@@ -36,7 +36,7 @@ func NewServerInit(ipAddress, ClusterIpAddress, portVal string, Etcd *etcd.EtcdC
 
 func (s *Server) InitServer() {
 	// TCP connection - Listen on port specified in input
-	PolicyChan = make(chan tp.K8sKubeArmorHostPolicyEventWithIdentity)
+	PolicyChan = make(chan tp.KubeArmorHostPolicyEventWithIdentity)
 	tcpConn, err := net.Listen("tcp", ":"+s.port)
 	if err != nil {
 		kg.Printf("Error listening on port %s", s.port)

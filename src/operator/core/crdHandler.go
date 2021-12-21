@@ -34,6 +34,7 @@ func (dm *KVMSOperator) UpdateVirtualMachineSecurityPolicies() {
 	}
 	*/
 }
+
 func Find(identities []uint16, identity uint16) (int, bool) {
 	for i, item := range identities {
 		if item == identity {
@@ -163,7 +164,7 @@ func (dm *KVMSOperator) WatchVirtualMachineSecurityPolicies() {
 
 			decoder := json.NewDecoder(resp.Body)
 			for {
-				event := tp.K8sKubeArmorVirtualMachinePolicyEvent{}
+				event := tp.KubeArmorVirtualMachinePolicyEvent{}
 				if err := decoder.Decode(&event); err == io.EOF {
 					break
 				} else if err != nil {

@@ -121,76 +121,76 @@ type K8sPodEvent struct {
 	Object v1.Pod `json:"object"`
 }
 
-// K8sPolicyStatus Structure
-type K8sPolicyStatus struct {
+// PolicyStatus Structure
+type PolicyStatus struct {
 	Status string `json:"status,omitempty"`
 }
 
-// K8sKubeArmorPolicyEvent Structure
-type K8sKubeArmorPolicyEvent struct {
-	Type   string             `json:"type"`
-	Object K8sKubeArmorPolicy `json:"object"`
+// KubeArmorPolicyEvent Structure
+type KubeArmorPolicyEvent struct {
+	Type   string          `json:"type"`
+	Object KubeArmorPolicy `json:"object"`
 }
 
-// K8sKubeArmorPolicy Structure
-type K8sKubeArmorPolicy struct {
+// KubeArmorPolicy Structure
+type KubeArmorPolicy struct {
 	Metadata metav1.ObjectMeta `json:"metadata"`
 	Spec     SecuritySpec      `json:"spec"`
-	Status   K8sPolicyStatus   `json:"status,omitempty"`
+	Status   PolicyStatus      `json:"status,omitempty"`
 }
 
-// K8sKubeArmorPolicies Structure
-type K8sKubeArmorPolicies struct {
-	Items []K8sKubeArmorPolicy `json:"items"`
+// KubeArmorPolicies Structure
+type KubeArmorPolicies struct {
+	Items []KubeArmorPolicy `json:"items"`
 }
 
-// K8sKubeArmorHostPolicyEvent Structure
-type K8sKubeArmorHostPolicyEvent struct {
-	Type   string                 `json:"type"`
-	Object K8sKubeArmorHostPolicy `json:"object"`
+// KubeArmorHostPolicyEvent Structure
+type KubeArmorHostPolicyEvent struct {
+	Type   string              `json:"type"`
+	Object KubeArmorHostPolicy `json:"object"`
 }
 
-// K8sKubeArmorHostPolicy Structure
-type K8sKubeArmorHostPolicy struct {
+// KubeArmorHostPolicy Structure
+type KubeArmorHostPolicy struct {
 	Metadata metav1.ObjectMeta `json:"metadata"`
 	Spec     HostSecuritySpec  `json:"spec"`
-	Status   K8sPolicyStatus   `json:"status,omitempty"`
+	Status   PolicyStatus      `json:"status,omitempty"`
 }
 
-type MK8sKubeArmorHostPolicy struct {
+type MKubeArmorHostPolicy struct {
 	Api      string            `json:"apiVersion"`
 	Kind     string            `json:"kind"`
 	Metadata metav1.ObjectMeta `json:"metadata"`
 	Spec     HostSecuritySpec  `json:"spec"`
 }
 
-// K8sKubeArmorHostPolicies Structure
-type K8sKubeArmorHostPolicies struct {
-	Items []K8sKubeArmorHostPolicy `json:"items"`
+// KubeArmorHostPolicies Structure
+type KubeArmorHostPolicies struct {
+	Items []KubeArmorHostPolicy `json:"items"`
 }
 
-type K8sKubeArmorVirtualMachinePolicyStatus struct {
+type KubeArmorVirtualMachinePolicyStatus struct {
 	ID     uint64 `json:"id,omitempty"`
 	IP     string `json:"ip,omitempty"`
 	Status string `json:"status,omitempty"`
 }
 
-// K8sKubeArmorVirtualMachinePolicyEvent Structure
-type K8sKubeArmorVirtualMachinePolicyEvent struct {
-	Type   string                           `json:"type"`
-	Object K8sKubeArmorVirtualMachinePolicy `json:"object"`
+// KubeArmorVirtualMachinePolicyEvent Structure
+type KubeArmorVirtualMachinePolicyEvent struct {
+	Type   string                        `json:"type"`
+	Object KubeArmorVirtualMachinePolicy `json:"object"`
 }
 
-// K8sKubeArmoVirtualMachinePolicy Structure
-type K8sKubeArmorVirtualMachinePolicy struct {
-	Metadata metav1.ObjectMeta                      `json:"metadata"`
-	Spec     VirtualMachineSecuritySpec             `json:"spec"`
-	Status   K8sKubeArmorVirtualMachinePolicyStatus `json:"status,omitempty"`
+// KubeArmoVirtualMachinePolicy Structure
+type KubeArmorVirtualMachinePolicy struct {
+	Metadata metav1.ObjectMeta                   `json:"metadata"`
+	Spec     VirtualMachineSecuritySpec          `json:"spec"`
+	Status   KubeArmorVirtualMachinePolicyStatus `json:"status,omitempty"`
 }
 
-// K8sKubeArmorVirtualMachinePolicies Structure
-type K8sKubeArmorVirtualMachinePolicies struct {
-	Items []K8sKubeArmorVirtualMachinePolicy `json:"items"`
+// KubeArmorVirtualMachinePolicies Structure
+type KubeArmorVirtualMachinePolicies struct {
+	Items []KubeArmorVirtualMachinePolicy `json:"items"`
 }
 
 // ============= //
@@ -532,9 +532,9 @@ type VirtualMachineSecurityPolicy struct {
 	Metadata VirtualMachineMetadata `json:"metadata"`
 }
 
-// K8sKubeArmorHostPolicyEventWithIdentities
-type K8sKubeArmorHostPolicyEventWithIdentity struct {
-	Event           K8sKubeArmorHostPolicyEvent
+// KubeArmorHostPolicyEventWithIdentities
+type KubeArmorHostPolicyEventWithIdentity struct {
+	Event           KubeArmorHostPolicyEvent
 	Identity        uint16
 	CloseConnection bool
 }
@@ -566,3 +566,6 @@ type PidNode struct {
 	ExitedTime time.Time
 }
 */
+// VM
+type KubeArmorHostPolicyEventCallback func(KubeArmorHostPolicyEvent)
+type HandleVmCallback func(event KubeArmorVirtualMachinePolicyEvent)

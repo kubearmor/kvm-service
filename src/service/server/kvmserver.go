@@ -91,7 +91,7 @@ func (s *KVMServer) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 			// select {
 			// case <-stream.Context().Done():
 			<-stream.Context().Done()
-			closeEvent := tp.K8sKubeArmorHostPolicyEventWithIdentity{}
+			closeEvent := tp.KubeArmorHostPolicyEventWithIdentity{}
 			closeEvent.Identity = GetIdentityFromContext(stream.Context())
 			closeEvent.CloseConnection = true
 			kg.Errf("Closing client connections for identity %d\n", closeEvent.Identity)
