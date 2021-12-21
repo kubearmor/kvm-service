@@ -22,7 +22,9 @@ func HandleVm(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&vmEvent)
 	if err != nil {
 		kg.Err(err.Error())
-		w.Write([]byte("Failed to decode data"))
+		if _, err = w.Write([]byte("Failed to decode data")); err != nil {
+			return
+		}
 		return
 	}
 
@@ -38,7 +40,9 @@ func HandlePolicies(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&policyEvent)
 	if err != nil {
 		kg.Err(err.Error())
-		w.Write([]byte("Failed to decode data"))
+		if _, err = w.Write([]byte("Failed to decode data")); err != nil {
+			return
+		}
 		return
 	}
 
