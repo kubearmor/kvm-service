@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"math/rand"
 	"reflect"
@@ -11,6 +12,7 @@ import (
 	kl "github.com/kubearmor/KVMService/src/common"
 	ct "github.com/kubearmor/KVMService/src/constants"
 	kg "github.com/kubearmor/KVMService/src/log"
+	ks "github.com/kubearmor/KVMService/src/service/server"
 	tp "github.com/kubearmor/KVMService/src/types"
 )
 
@@ -29,6 +31,17 @@ func (dm *KVMS) convertLabelsToStr(labelStr map[string]string) string {
 		label = k + "=" + v
 	}
 	return label
+}
+
+func (dm *KVMS) terminateClientConnection(clientIdentity uint16) {
+	kg.Printf("Terminating client connection for %d", clientIdentity)
+
+	terminateConnection := tp.KubeArmorHostPolicyEventWithIdentity{}
+	terminateConnection.CloseConnection = true
+	terminateConnection.Identity = clientIdentity
+	terminateConnection.Err = errors.New("identity removed from server")
+
+	ks.PolicyChan <- terminateConnection
 }
 
 func (dm *KVMS) UnMapLabelIdentity(identity uint16, ewName, label string) {
@@ -130,6 +143,16 @@ func (dm *KVMS) GetVirtualMachineAllLabels() []string {
 	return VirtualMachineLabels
 }
 
+func (dm *KVMS) ListOnboardedVms() string {
+	var vmList string
+
+	for _, vm := range dm.VirtualMachineSecurityPolicies {
+		vmList = vmList + "\n[" + vm.Metadata.Name + "]"
+	}
+
+	return vmList
+}
+
 func (dm *KVMS) HandleVm(event tp.KubeArmorVirtualMachinePolicyEvent) {
 
 	secPolicy := tp.VirtualMachineSecurityPolicy{}
@@ -168,6 +191,7 @@ func (dm *KVMS) HandleVm(event tp.KubeArmorVirtualMachinePolicyEvent) {
 				kg.Printf("Before: %+v\n", dm.MapLabelToIdentities[dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels)])
 				dm.UnMapLabelIdentity(identity, secPolicy.Metadata.Name, dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels))
 				kg.Printf("After: %+v\n", dm.MapLabelToIdentities[dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels)])
+				dm.terminateClientConnection(identity)
 				break
 			}
 		}

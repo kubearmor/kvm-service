@@ -196,7 +196,7 @@ func KVMSDaemon(portPtr int, nonk8s bool) {
 	} else {
 		// Start http server
 		kg.Print("Starting HTTP Server")
-		go ks.InitHttpServer(dm.UpdateHostSecurityPolicies, dm.HandleVm)
+		go ks.InitHttpServer(dm.UpdateHostSecurityPolicies, dm.HandleVm, dm.ListOnboardedVms)
 	}
 
 	kg.Print("Triggered the keepalive ETCD client")

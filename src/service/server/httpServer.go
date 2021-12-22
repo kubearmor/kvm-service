@@ -12,6 +12,7 @@ import (
 var (
 	policyEventCb tp.KubeArmorHostPolicyEventCallback
 	vmEventCb     tp.HandleVmCallback
+	vmListCb      tp.ListVmCallback
 )
 
 func HandleVm(w http.ResponseWriter, r *http.Request) {
@@ -54,12 +55,25 @@ func HandleLabels(w http.ResponseWriter, r *http.Request) {
 	kg.Printf("Request body for labels : %s\n", r.Body)
 }
 
+func ListVms(w http.ResponseWriter, r *http.Request) {
+	kg.Printf("Received vm-list request")
+
+	vmList := vmListCb()
+	if _, err := w.Write([]byte(vmList)); err != nil {
+		return
+	}
+}
+
 func InitHttpServer(policyCbFunc tp.KubeArmorHostPolicyEventCallback,
-	vmCBFunc tp.HandleVmCallback) {
+	vmCBFunc tp.HandleVmCallback, vmListCbFunc tp.ListVmCallback) {
 
 	// Set routing rule for vm handling
 	http.HandleFunc("/vm", HandleVm)
 	vmEventCb = vmCBFunc
+
+	// Set routing rule for vm handling
+	http.HandleFunc("/vmlist", ListVms)
+	vmListCb = vmListCbFunc
 
 	// Set routing rule for policy handling
 	http.HandleFunc("/policy", HandlePolicies)

@@ -537,6 +537,7 @@ type KubeArmorHostPolicyEventWithIdentity struct {
 	Event           KubeArmorHostPolicyEvent
 	Identity        uint16
 	CloseConnection bool
+	Err             error
 }
 
 /*
@@ -569,3 +570,4 @@ type PidNode struct {
 // VM
 type KubeArmorHostPolicyEventCallback func(KubeArmorHostPolicyEvent)
 type HandleVmCallback func(event KubeArmorVirtualMachinePolicyEvent)
+type ListVmCallback func() string
