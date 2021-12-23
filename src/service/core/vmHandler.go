@@ -39,7 +39,7 @@ func (dm *KVMS) terminateClientConnection(clientIdentity uint16) {
 	terminateConnection := tp.KubeArmorHostPolicyEventWithIdentity{}
 	terminateConnection.CloseConnection = true
 	terminateConnection.Identity = clientIdentity
-	terminateConnection.Err = errors.New("identity removed from server")
+	terminateConnection.Err = errors.New("err-identity-removed")
 
 	ks.PolicyChan <- terminateConnection
 }
