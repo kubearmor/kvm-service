@@ -25,12 +25,13 @@ func find(identities []uint16, identity uint16) (int, bool) {
 	return -1, false
 }
 
-func (dm *KVMS) convertLabelsToStr(labelStr map[string]string) string {
-	var label string
+func (dm *KVMS) convertLabelsToStr(labelStr map[string]string) []string {
+	var labels []string
 	for k, v := range labelStr {
-		label = k + "=" + v
+		label := k + "=" + v
+		labels = append(labels, label)
 	}
-	return label
+	return labels
 }
 
 func (dm *KVMS) terminateClientConnection(clientIdentity uint16) {
@@ -44,7 +45,7 @@ func (dm *KVMS) terminateClientConnection(clientIdentity uint16) {
 	ks.PolicyChan <- terminateConnection
 }
 
-func (dm *KVMS) UnMapLabelIdentity(identity uint16, ewName, label string) {
+func (dm *KVMS) UnMapLabelIdentity(identity uint16, ewName string, labels []string) {
 	delete(dm.MapIdentityToEWName, identity)
 	delete(dm.MapEWNameToIdentity, ewName)
 	delete(dm.MapIdentityToLabel, identity)
@@ -64,38 +65,43 @@ func (dm *KVMS) UnMapLabelIdentity(identity uint16, ewName, label string) {
 		log.Fatal(err)
 	}
 
-	identities := dm.MapLabelToIdentities[label]
-	for index, value := range dm.MapLabelToIdentities[label] {
-		if value == identity {
-			identities[index] = identities[len(identities)-1]
-			identities[len(identities)-1] = 0
-			identities = identities[:len(identities)-1]
+	for _, label := range labels {
+		identities := dm.MapLabelToIdentities[label]
+		for index, value := range dm.MapLabelToIdentities[label] {
+			if value == identity {
+				identities[index] = identities[len(identities)-1]
+				identities[len(identities)-1] = 0
+				identities = identities[:len(identities)-1]
+			}
 		}
-	}
-	// After deleting the identity from the label map
-	// update the etcd with updated label to identities map
-	mapStr, _ := json.Marshal(dm.MapLabelToIdentities[label])
-	err = dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprLabelToIdentities+label, string(mapStr))
-	if err != nil {
-		log.Fatal(err)
+		// After deleting the identity from the label map
+		// update the etcd with updated label to identities map
+		mapStr, _ := json.Marshal(dm.MapLabelToIdentities[label])
+		err = dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprLabelToIdentities+label, string(mapStr))
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
-func (dm *KVMS) UpdateIdentityLabelsMap(identity uint16, label string) {
-	kg.Printf("Updating identity to label map identity:%d label:%s", identity, label)
-	dm.MapIdentityToLabel[identity] = label
-	err := dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprIdentityToLabel+strconv.FormatUint(uint64(identity), 10), label)
-	if err != nil {
-		log.Fatal(err)
-	}
+func (dm *KVMS) UpdateIdentityLabelsMap(identity uint16, labels []string) {
 
-	_, found := find(dm.MapLabelToIdentities[label], identity)
-	if !found {
-		dm.MapLabelToIdentities[label] = append(dm.MapLabelToIdentities[label], identity)
-		mapStr, _ := json.Marshal(dm.MapLabelToIdentities[label])
-		err := dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprLabelToIdentities+label, string(mapStr))
+	for _, label := range labels {
+		kg.Printf("Updating identity to label map identity:%d label:%s", identity, label)
+		dm.MapIdentityToLabel[identity] = label
+		err := dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprIdentityToLabel+strconv.FormatUint(uint64(identity), 10), label)
 		if err != nil {
 			log.Fatal(err)
+		}
+
+		_, found := find(dm.MapLabelToIdentities[label], identity)
+		if !found {
+			dm.MapLabelToIdentities[label] = append(dm.MapLabelToIdentities[label], identity)
+			mapStr, _ := json.Marshal(dm.MapLabelToIdentities[label])
+			err := dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprLabelToIdentities+label, string(mapStr))
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 }
@@ -147,7 +153,13 @@ func (dm *KVMS) ListOnboardedVms() string {
 	var vmList string
 
 	for _, vm := range dm.VirtualMachineSecurityPolicies {
-		vmList = vmList + "\n[" + vm.Metadata.Name + "]"
+		vmName := vm.Metadata.Name
+		kvPair, err := dm.EtcdClient.EtcdGet(context.Background(), ct.KvmOprEWNameToIdentity+vmName)
+		if err != nil {
+			log.Fatal(err)
+			return ""
+		}
+		vmList = vmList + "\n[ " + vmName + " : " + kvPair[ct.KvmOprEWNameToIdentity+vmName] + " ]"
 	}
 
 	return vmList
@@ -188,9 +200,15 @@ func (dm *KVMS) HandleVm(event tp.KubeArmorVirtualMachinePolicyEvent) {
 			if reflect.DeepEqual(secPolicy, policy) {
 				dm.VirtualMachineSecurityPolicies = append(dm.VirtualMachineSecurityPolicies[:idx], dm.VirtualMachineSecurityPolicies[idx+1:]...)
 				identity := dm.GetEWIdentityFromName(secPolicy.Metadata.Name)
-				kg.Printf("Before: %+v\n", dm.MapLabelToIdentities[dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels)])
+				for _, label := range dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels) {
+					kg.Printf("Before: %+v\n", dm.MapLabelToIdentities[label])
+				}
+				//kg.Printf("Before: %+v\n", dm.MapLabelToIdentities[dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels)])
 				dm.UnMapLabelIdentity(identity, secPolicy.Metadata.Name, dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels))
-				kg.Printf("After: %+v\n", dm.MapLabelToIdentities[dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels)])
+				for _, label := range dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels) {
+					kg.Printf("After: %+v\n", dm.MapLabelToIdentities[label])
+				}
+				//kg.Printf("After: %+v\n", dm.MapLabelToIdentities[dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels)])
 				dm.terminateClientConnection(identity)
 				break
 			}

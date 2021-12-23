@@ -1,7 +1,7 @@
 apiVersion: security.kubearmor.com/v1
 kind: KubeArmorVirtualMachine
 metadata:
-  name: kvm1
+  name: test-datapipeline-347
   labels:
     abc: xyz
-      #io.kubernetes.pod.namespace: default 
+    def: pqr
