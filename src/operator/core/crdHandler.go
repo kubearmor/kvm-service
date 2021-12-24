@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"log"
 	"math/rand"
 	"reflect"
 	"strconv"
@@ -19,21 +18,6 @@ import (
 	tp "github.com/kubearmor/KVMService/src/types"
 )
 
-// UpdateVirtualMachineSecurityPolicies Function
-func (dm *KVMSOperator) UpdateVirtualMachineSecurityPolicies() {
-
-	dm.VirtualMachineSecurityPoliciesLock.Lock()
-	defer dm.VirtualMachineSecurityPoliciesLock.Unlock()
-
-	/* Unused code
-	secPolicies := []tp.ExternalWorkloadSecurityPolicy{}
-
-	for _, policy := range dm.VirtualMachineSecurityPolicies {
-		// TODO:
-		secPolicies = append(secPolicies, policy)
-	}
-	*/
-}
 func Find(identities []uint16, identity uint16) (int, bool) {
 	for i, item := range identities {
 		if item == identity {
@@ -59,17 +43,20 @@ func (dm *KVMSOperator) UnMapLabelIdentity(identity uint16, ewName string, label
 
 	err := dm.EtcdClient.EtcdDelete(context.TODO(), ct.KvmOprIdentityToEWName+strconv.FormatUint(uint64(identity), 10))
 	if err != nil {
-		log.Fatal(err)
+		kg.Err(err.Error())
+		return
 	}
 
 	err = dm.EtcdClient.EtcdDelete(context.TODO(), ct.KvmOprEWNameToIdentity+ewName)
 	if err != nil {
-		log.Fatal(err)
+		kg.Err(err.Error())
+		return
 	}
 
 	err = dm.EtcdClient.EtcdDelete(context.TODO(), ct.KvmOprIdentityToLabel+strconv.FormatUint(uint64(identity), 10))
 	if err != nil {
-		log.Fatal(err)
+		kg.Err(err.Error())
+		return
 	}
 
 	for _, label := range labels {
@@ -86,7 +73,8 @@ func (dm *KVMSOperator) UnMapLabelIdentity(identity uint16, ewName string, label
 		mapStr, _ := json.Marshal(dm.MapLabelToIdentities[label])
 		err = dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprLabelToIdentities+label, string(mapStr))
 		if err != nil {
-			log.Fatal(err)
+			kg.Err(err.Error())
+			return
 		}
 	}
 }
@@ -97,7 +85,8 @@ func (dm *KVMSOperator) UpdateIdentityLabelsMap(identity uint16, labels []string
 		dm.MapIdentityToLabel[identity] = label
 		err := dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprIdentityToLabel+strconv.FormatUint(uint64(identity), 10), label)
 		if err != nil {
-			log.Fatal(err)
+			kg.Err(err.Error())
+			return
 		}
 
 		_, found := Find(dm.MapLabelToIdentities[label], identity)
@@ -106,7 +95,8 @@ func (dm *KVMSOperator) UpdateIdentityLabelsMap(identity uint16, labels []string
 			mapStr, _ := json.Marshal(dm.MapLabelToIdentities[label])
 			err := dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprLabelToIdentities+label, string(mapStr))
 			if err != nil {
-				log.Fatal(err)
+				kg.Err(err.Error())
+				return
 			}
 		}
 	}
@@ -121,13 +111,15 @@ func (dm *KVMSOperator) GenerateVirtualMachineIdentity(name string, labels map[s
 			kg.Printf("Mappings identity to ewName=> %v", dm.MapIdentityToEWName)
 			err := dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprIdentityToEWName+strconv.FormatUint(uint64(identity), 10), name)
 			if err != nil {
-				log.Fatal(err)
+				kg.Err(err.Error())
+				return 0
 			}
 
 			kg.Printf("Mappings ewName to identity => %v", dm.MapEWNameToIdentity)
 			err = dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprEWNameToIdentity+name, strconv.FormatUint(uint64(identity), 10))
 			if err != nil {
-				log.Fatal(err)
+				kg.Err(err.Error())
+				return 0
 			}
 
 			return identity
@@ -135,7 +127,7 @@ func (dm *KVMSOperator) GenerateVirtualMachineIdentity(name string, labels map[s
 	}
 }
 
-func (dm *KVMSOperator) GetEWIdentityFromName(name string) uint16 {
+func (dm *KVMSOperator) GetVMIdentityFromName(name string) uint16 {
 	return dm.MapEWNameToIdentity[name]
 }
 
@@ -194,7 +186,6 @@ func (dm *KVMSOperator) WatchVirtualMachineSecurityPolicies() {
 						dm.VirtualMachineSecurityPolicies = append(dm.VirtualMachineSecurityPolicies, secPolicy)
 						identity := dm.GenerateVirtualMachineIdentity(secPolicy.Metadata.Name, secPolicy.Metadata.NodeSelector.MatchLabels)
 						kg.Printf("Generated the identity(%s) for this CRD:%d", secPolicy.Metadata.Name, identity)
-						//gs.GenerateEWInstallationScript(dm.Port, dm.ClusterIp, secPolicy.Metadata.Name, identity)
 						dm.UpdateIdentityLabelsMap(identity, dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels))
 					}
 				} else if event.Type == "MODIFIED" {
@@ -202,7 +193,7 @@ func (dm *KVMSOperator) WatchVirtualMachineSecurityPolicies() {
 					for idx, policy := range dm.VirtualMachineSecurityPolicies {
 						if policy.Metadata.Name == secPolicy.Metadata.Name {
 							dm.VirtualMachineSecurityPolicies[idx] = secPolicy
-							identity := dm.GetEWIdentityFromName(secPolicy.Metadata.Name)
+							identity := dm.GetVMIdentityFromName(secPolicy.Metadata.Name)
 							dm.UpdateIdentityLabelsMap(identity, dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels))
 							break
 						}
@@ -212,15 +203,12 @@ func (dm *KVMSOperator) WatchVirtualMachineSecurityPolicies() {
 					for idx, policy := range dm.VirtualMachineSecurityPolicies {
 						if reflect.DeepEqual(secPolicy, policy) {
 							dm.VirtualMachineSecurityPolicies = append(dm.VirtualMachineSecurityPolicies[:idx], dm.VirtualMachineSecurityPolicies[idx+1:]...)
-							identity := dm.GetEWIdentityFromName(secPolicy.Metadata.Name)
+							identity := dm.GetVMIdentityFromName(secPolicy.Metadata.Name)
 							dm.UnMapLabelIdentity(identity, secPolicy.Metadata.Name, dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels))
 						}
 					}
 				}
 				dm.VirtualMachineSecurityPoliciesLock.Unlock()
-
-				// apply security policies to a Virtual Machine
-				dm.UpdateVirtualMachineSecurityPolicies()
 			}
 		}
 	}

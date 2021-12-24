@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"log"
 
 	ct "github.com/kubearmor/KVMService/src/constants"
 	kg "github.com/kubearmor/KVMService/src/log"
@@ -19,7 +18,7 @@ func (c *CLIServer) HandleCliRequest(ctx context.Context, request *pb.CliRequest
 	kg.Printf("Received the request KVMName:%s\n", request.KvmName)
 	kvPair, err := EtcdClient.EtcdGet(context.Background(), ct.KvmOprEWNameToIdentity+request.KvmName)
 	if err != nil {
-		log.Fatal(err)
+		kg.Err(err.Error())
 		return &pb.ResponseStatus{ScriptData: "", StatusMsg: "Error: DB reading failed", Status: -1}, err
 	}
 

@@ -21,7 +21,6 @@ import (
 // ClientConn is the wrapper for a grpc client conn
 type ClientConn struct {
 	*grpc.ClientConn
-	//	unhealthy bool
 }
 
 // ====================== //
