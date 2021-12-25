@@ -10,14 +10,14 @@ var (
 	KvmOprIdentityToLabel   = "/kvm-opr-identity-to-label-maps/"
 
 	KhpCRDName         = "kubearmorhostpolicies"
-	KewCRDName         = "kubearmorexternalworkloads"
+	KvmCRDName         = "kubearmorvirtualmachines"
 	LocalHostIPAddress = "127.0.0.1"
 	KubeProxyK8sPort   = "8001"
 	KCLIPort           = "32770"
 
-	EtcdCertFile  = "/etc/kubernetes/pki/etcd/server.crt"
-	EtcdKeyFile   = "/etc/kubernetes/pki/etcd/server.key"
-	EtcdCAFile    = "/etc/kubernetes/pki/etcd/ca.crt"
+	CertFile      = "/etc/kubernetes/pki/etcd/server.crt"
+	KeyFile       = "/etc/kubernetes/pki/etcd/server.key"
+	CAFile        = "/etc/kubernetes/pki/etcd/ca.crt"
 	EtcdEndPoints = "https://10.0.2.15:2379"
 	EtcdClientTTL = 10
 

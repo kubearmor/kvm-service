@@ -6,7 +6,6 @@ package core
 import (
 	"encoding/json"
 	"io"
-	"log"
 
 	//"sort"
 	"strings"
@@ -57,10 +56,10 @@ func (dm *KVMS) mGetAllEtcdEWLabels() {
 */
 
 func (dm *KVMS) GetAllEtcdEWLabels() {
-	kg.Print("Getting the External workload labels from ETCD")
+	kg.Print("Getting the Virtual Machine labels from ETCD")
 	etcdLabels, err := dm.EtcdClient.EtcdGet(context.TODO(), ct.KvmOprLabelToIdentities)
 	if err != nil {
-		log.Fatal(err)
+		kg.Err(err.Error())
 		return
 	}
 
@@ -73,7 +72,7 @@ func (dm *KVMS) GetAllEtcdEWLabels() {
 	for _, label := range dm.EtcdEWLabels {
 		data, err := dm.EtcdClient.EtcdGetRaw(context.TODO(), ct.KvmOprLabelToIdentities+label)
 		if err != nil {
-			log.Fatal(err)
+			kg.Err(err.Error())
 			return
 		}
 
@@ -81,7 +80,7 @@ func (dm *KVMS) GetAllEtcdEWLabels() {
 			var arr []uint16
 			err := json.Unmarshal(ev.Value, &arr)
 			if err != nil {
-				log.Fatal(err)
+				kg.Err(err.Error())
 				return
 			}
 			s := strings.Split(string(ev.Key), "/")
@@ -120,7 +119,8 @@ func (dm *KVMS) UpdateHostSecurityPolicies(event tp.K8sKubeArmorHostPolicyEvent)
 	secPolicy.Metadata["policyName"] = event.Object.Metadata.Name
 
 	if err := kl.Clone(event.Object.Spec, &secPolicy.Spec); err != nil {
-		log.Fatal("Failed to clone a spec")
+		kg.Err("Failed to clone a spec")
+		return
 	}
 
 	for k, v := range secPolicy.Spec.NodeSelector.MatchLabels {
@@ -136,7 +136,7 @@ func (dm *KVMS) UpdateHostSecurityPolicies(event tp.K8sKubeArmorHostPolicyEvent)
 	if kl.MatchIdentities(labels, dm.EtcdEWLabels) {
 		for _, label := range labels {
 			identities = dm.GetIdentityFromLabelPool(label)
-			kg.Printf("External workload CRD matched with policy identity:%+v label:%s\n", identities, label)
+			kg.Printf("Virtual Machine CRD matched with policy identity:%+v label:%s\n", identities, label)
 			if len(identities) > 0 {
 				dm.PassOverToKVMSAgent(event, identities)
 			}

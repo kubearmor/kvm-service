@@ -39,7 +39,8 @@ func (s *Server) InitServer() {
 	PolicyChan = make(chan tp.K8sKubeArmorHostPolicyEventWithIdentity)
 	tcpConn, err := net.Listen("tcp", ":"+s.port)
 	if err != nil {
-		kg.Printf("Error listening on port %s", s.port)
+		kg.Errf("Error listening on port %s", s.port)
+		return
 	} else {
 		kg.Printf("Successfully KVMServer Listening on port %s", s.port)
 	}
@@ -48,6 +49,7 @@ func (s *Server) InitServer() {
 	gRPCServer := grpc.NewServer()
 	if gRPCServer == nil {
 		kg.Err("Failed to serve gRPCServer is null")
+		return
 	}
 
 	// Register KVM Server
@@ -59,5 +61,6 @@ func (s *Server) InitServer() {
 	err = gRPCServer.Serve(tcpConn)
 	if err != nil {
 		kg.Err("Failed to serve")
+		return
 	}
 }

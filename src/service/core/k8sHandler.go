@@ -199,6 +199,7 @@ func (kh *K8sHandler) DoRequest(cmd string, data interface{}, path string) ([]by
 
 	if err := resp.Body.Close(); err != nil {
 		kg.Err(err.Error())
+		return nil, err
 	}
 
 	return resBody, nil

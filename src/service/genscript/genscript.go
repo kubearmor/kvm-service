@@ -28,12 +28,12 @@ func addContent(content string) {
 	ScriptData = ScriptData + content + "\n"
 }
 
-func GenerateEWInstallationScript(externalWorkload, identity string) string {
+func GenerateEWInstallationScript(virtualmachine, identity string) string {
 
 	ScriptData = ""
 
 	kg.Printf("Generating the installation script =>")
-	kg.Printf("ClusterIP:%s ClusterPort:%d ewName:%s identity:%s", p.ipAddress, p.port, externalWorkload, identity)
+	kg.Printf("ClusterIP:%s ClusterPort:%d ewName:%s identity:%s", p.ipAddress, p.port, virtualmachine, identity)
 
 	addContent("#!/bin/bash")
 	addContent("set -e")
@@ -71,7 +71,7 @@ func GenerateEWInstallationScript(externalWorkload, identity string) string {
 	addContent("DOCKER_OPTS+=\" --volume /etc/apparmor.d:/etc/apparmor.d\"")
 	addContent("DOCKER_OPTS+=\" --volume /etc/os-release:/media/root/etc/os-release\"")
 	addContent("")
-	addContent("KUBEARMOR_OPTS=\" -enableKubeArmorvm=true -logPath=/tmp/kubearmor.log\"")
+	addContent("KUBEARMOR_OPTS=\" -enableKubeArmorVm true -logPath=/tmp/kubearmor.log\"")
 	addContent("")
 	addContent("if [ -n \"$(sudo docker ps -a -q -f name=kubearmor)\" ]; then")
 	addContent("    echo \"Shutting down running kubearmor agent\"")
@@ -81,7 +81,7 @@ func GenerateEWInstallationScript(externalWorkload, identity string) string {
 	addContent("KUBEARMOR_IMAGE=\"kubearmor/kubearmor:latest\"")
 	addContent("")
 	addContent("echo \"Launching kubearmor agent...\"")
-	addContent("sudo docker run --name kubearmor $DOCKER_OPTS $KUBEARMOR_IMAGE kubearmor $KUBEARMOR_OPTS")
+	addContent("sudo docker run --name kubearmor $DOCKER_OPTS $KUBEARMOR_IMAGE $KUBEARMOR_OPTS")
 	addContent("")
 
 	kg.Printf("Script data is successfully generated!")

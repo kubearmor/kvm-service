@@ -1,4 +1,4 @@
-module github.com/kubearmor/KubeArmor/pkg/KubeArmorExternalWorkload
+module github.com/kubearmor/KubeArmor/pkg/KubeArmorVirtualMachine
 
 go 1.13
 

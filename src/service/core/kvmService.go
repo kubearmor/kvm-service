@@ -61,13 +61,13 @@ type KVMS struct {
 	HostSecurityPolicies     []tp.HostSecurityPolicy
 	HostSecurityPoliciesLock *sync.RWMutex
 
-	// External workload policies and mappers
-	ExternalWorkloadSecurityPolicies     []tp.ExternalWorkloadSecurityPolicy
-	ExternalWorkloadSecurityPoliciesLock *sync.RWMutex
+	// Virtual Machine policies and mappers
+	VirtualMachineSecurityPolicies     []tp.VirtualMachineSecurityPolicy
+	VirtualMachineSecurityPoliciesLock *sync.RWMutex
 
-	MapIdentityToLabel              map[uint16]string
-	MapLabelToIdentities            map[string][]uint16
-	MapExternalWorkloadConnIdentity map[uint16]ClientConn
+	MapIdentityToLabel            map[uint16]string
+	MapLabelToIdentities          map[string][]uint16
+	MapVirtualMachineConnIdentity map[uint16]ClientConn
 
 	ClusterPort      uint16
 	ClusteripAddress string
@@ -106,11 +106,11 @@ func NewKVMSDaemon(port int, ipAddress string) *KVMS {
 
 	dm.HostSecurityPolicies = []tp.HostSecurityPolicy{}
 	dm.HostSecurityPoliciesLock = new(sync.RWMutex)
-	dm.ExternalWorkloadSecurityPoliciesLock = new(sync.RWMutex)
+	dm.VirtualMachineSecurityPoliciesLock = new(sync.RWMutex)
 
 	dm.MapIdentityToLabel = make(map[uint16]string)
 	dm.MapLabelToIdentities = make(map[string][]uint16)
-	dm.MapExternalWorkloadConnIdentity = make(map[uint16]ClientConn)
+	dm.MapVirtualMachineConnIdentity = make(map[uint16]ClientConn)
 
 	dm.WgDaemon = sync.WaitGroup{}
 	kg.Print("KVMService attributes got initialized\n")

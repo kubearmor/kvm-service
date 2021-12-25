@@ -169,28 +169,28 @@ type K8sKubeArmorHostPolicies struct {
 	Items []K8sKubeArmorHostPolicy `json:"items"`
 }
 
-type K8sKubeArmorExternalWorkloadPolicyStatus struct {
+type K8sKubeArmorVirtualMachinePolicyStatus struct {
 	ID     uint64 `json:"id,omitempty"`
 	IP     string `json:"ip,omitempty"`
 	Status string `json:"status,omitempty"`
 }
 
-// K8sKubeArmorExternalWorkloadPolicyEvent Structure
-type K8sKubeArmorExternalWorkloadPolicyEvent struct {
-	Type   string                             `json:"type"`
-	Object K8sKubeArmorExternalWorkloadPolicy `json:"object"`
+// K8sKubeArmorVirtualMachinePolicyEvent Structure
+type K8sKubeArmorVirtualMachinePolicyEvent struct {
+	Type   string                           `json:"type"`
+	Object K8sKubeArmorVirtualMachinePolicy `json:"object"`
 }
 
-// K8sKubeArmorExternalWorkloadPolicy Structure
-type K8sKubeArmorExternalWorkloadPolicy struct {
-	Metadata metav1.ObjectMeta                        `json:"metadata"`
-	Spec     ExternalWorkloadSecuritySpec             `json:"spec"`
-	Status   K8sKubeArmorExternalWorkloadPolicyStatus `json:"status,omitempty"`
+// K8sKubeArmoVirtualMachinePolicy Structure
+type K8sKubeArmorVirtualMachinePolicy struct {
+	Metadata metav1.ObjectMeta                      `json:"metadata"`
+	Spec     VirtualMachineSecuritySpec             `json:"spec"`
+	Status   K8sKubeArmorVirtualMachinePolicyStatus `json:"status,omitempty"`
 }
 
-// K8sKubeArmorExternalWorkloadPolicies Structure
-type K8sKubeArmorExternalWorkloadPolicies struct {
-	Items []K8sKubeArmorExternalWorkloadPolicy `json:"items"`
+// K8sKubeArmorVirtualMachinePolicies Structure
+type K8sKubeArmorVirtualMachinePolicies struct {
+	Items []K8sKubeArmorVirtualMachinePolicy `json:"items"`
 }
 
 // ============= //
@@ -516,20 +516,20 @@ type HostSecurityPolicy struct {
 	Spec     HostSecuritySpec  `json:"spec"`
 }
 
-// ExternalWorkloadSecuritySpec Structure
-type ExternalWorkloadSecuritySpec struct {
+// VirtualMachineSecuritySpec Structure
+type VirtualMachineSecuritySpec struct {
 	IPv4AllocCIDR string `json:"ipv4-alloc-cidr,omitempty"`
 	IPv6AllocCIDR string `json:"ipv6-alloc-cidr,omitempty"`
 }
 
-type ExternalWorkloadMetadata struct {
-    NodeSelector NodeSelectorType `json:"nodeSelector"`
-    Name string `json:"name"`
+type VirtualMachineMetadata struct {
+	NodeSelector NodeSelectorType `json:"nodeSelector"`
+	Name         string           `json:"name"`
 }
 
-// ExternalWorkloadSecurityPolicy Structure
-type ExternalWorkloadSecurityPolicy struct {
-	Metadata ExternalWorkloadMetadata            `json:"metadata"`
+// VirtualMachineSecurityPolicy Structure
+type VirtualMachineSecurityPolicy struct {
+	Metadata VirtualMachineMetadata `json:"metadata"`
 }
 
 // K8sKubeArmorHostPolicyEventWithIdentities

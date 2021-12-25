@@ -21,7 +21,6 @@ import (
 // ClientConn is the wrapper for a grpc client conn
 type ClientConn struct {
 	*grpc.ClientConn
-	unhealthy bool
 }
 
 // ====================== //
@@ -40,18 +39,18 @@ func init() {
 type KVMSOperator struct {
 	EtcdClient *etcd.EtcdClient
 
-	EnableExternalWorkloadPolicy bool
+	EnableVirtualMachinePolicy bool
 
-	// External workload policies and mappers
-	ExternalWorkloadSecurityPolicies     []tp.ExternalWorkloadSecurityPolicy
-	ExternalWorkloadSecurityPoliciesLock *sync.RWMutex
+	// Virtual Machine policies and mappers
+	VirtualMachineSecurityPolicies     []tp.VirtualMachineSecurityPolicy
+	VirtualMachineSecurityPoliciesLock *sync.RWMutex
 
 	MapIdentityToEWName map[uint16]string
 	MapEWNameToIdentity map[string]uint16
 
-	MapIdentityToLabel              map[uint16]string
-	MapLabelToIdentities            map[string][]uint16
-	MapExternalWorkloadConnIdentity map[uint16]ClientConn
+	MapIdentityToLabel            map[uint16]string
+	MapLabelToIdentities          map[string][]uint16
+	MapVirtualMachineConnIdentity map[uint16]ClientConn
 
 	// WgOperatorDaemon Handler
 	WgOperatorDaemon sync.WaitGroup
@@ -63,7 +62,7 @@ func NewKVMSOperatorDaemon() *KVMSOperator {
 
 	dm.EtcdClient = etcd.NewEtcdClient()
 
-	dm.ExternalWorkloadSecurityPoliciesLock = new(sync.RWMutex)
+	dm.VirtualMachineSecurityPoliciesLock = new(sync.RWMutex)
 
 	dm.MapIdentityToLabel = make(map[uint16]string)
 	dm.MapLabelToIdentities = make(map[string][]uint16)
@@ -71,7 +70,7 @@ func NewKVMSOperatorDaemon() *KVMSOperator {
 	dm.MapIdentityToEWName = make(map[uint16]string)
 	dm.MapEWNameToIdentity = make(map[string]uint16)
 
-	dm.MapExternalWorkloadConnIdentity = make(map[uint16]ClientConn)
+	dm.MapVirtualMachineConnIdentity = make(map[uint16]ClientConn)
 
 	dm.WgOperatorDaemon = sync.WaitGroup{}
 	kg.Print("Successfully initialized KVMSOperator")
@@ -88,8 +87,8 @@ func (dm *KVMSOperator) DestroyKVMSOperator() {
 	// wait for other routines
 	kg.Print("Waiting for remaining routine terminations")
 
-	kg.Print("Deleting the external worklaods keys from etcd")
-	dm.EtcdClient.EtcdDelete(context.TODO(), ct.KvmOprLabelToIdentities)
+	kg.Print("Deleting the Virtual Machine keys from etcd")
+	_ = dm.EtcdClient.EtcdDelete(context.TODO(), ct.KvmOprLabelToIdentities)
 
 	dm.WgOperatorDaemon.Wait()
 }
@@ -126,8 +125,8 @@ func KVMSOperatorDaemon() {
 	time.Sleep(time.Second * 1)
 
 	if K8s.InitK8sClient() {
-		kg.Print("Started the external workload CRD watcher")
-		go dm.WatchExternalWorkloadSecurityPolicies()
+		kg.Print("Started the Virtual Machine CRD watcher")
+		go dm.WatchVirtualMachineSecurityPolicies()
 
 	} else {
 		kg.Print("Kubernetes is not initiliased and Operator is failed!")
