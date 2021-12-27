@@ -23,6 +23,14 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// =============== //
+// == Variables == //
+// =============== //
+
+var (
+	IsNonK8sEnv bool
+)
+
 // ============ //
 // == Common == //
 // ============ //
@@ -324,27 +332,31 @@ func GetEtcdEndPoint(serviceAccoutName string) string {
 
 	var etcdClusterIP string
 
-	// creates the in-cluster config
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		kg.Err(err.Error())
-	}
+	if !IsNonK8sEnv {
+		// creates the in-cluster config
+		config, err := rest.InClusterConfig()
+		if err != nil {
+			kg.Err(err.Error())
+		}
 
-	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		kg.Err(err.Error())
-	}
+		// creates the clientset
+		clientset, err := kubernetes.NewForConfig(config)
+		if err != nil {
+			kg.Err(err.Error())
+		}
 
-	svcList, err := clientset.CoreV1().Services(ct.EtcdNamespace).List(context.Background(), metav1.ListOptions{FieldSelector: "metadata.name=" + serviceAccoutName})
-	if err != nil {
-		kg.Err(err.Error())
-		return ""
-	}
+		svcList, err := clientset.CoreV1().Services(ct.EtcdNamespace).List(context.Background(), metav1.ListOptions{FieldSelector: "metadata.name=" + serviceAccoutName})
+		if err != nil {
+			kg.Err(err.Error())
+			return ""
+		}
 
-	for _, svc := range svcList.Items {
-		etcdClusterIP = svc.Spec.ClusterIP
-		break
+		for _, svc := range svcList.Items {
+			etcdClusterIP = svc.Spec.ClusterIP
+			break
+		}
+	} else {
+		etcdClusterIP = "localhost"
 	}
 
 	etcdClusterIP = "http://" + etcdClusterIP + ":2379"

@@ -90,8 +90,8 @@ func (dm *KVMS) GetAllEtcdEWLabels() {
 	}
 }
 
-func (dm *KVMS) PassOverToKVMSAgent(event tp.K8sKubeArmorHostPolicyEvent, identities []uint16) {
-	eventWithIdentity := tp.K8sKubeArmorHostPolicyEventWithIdentity{}
+func (dm *KVMS) PassOverToKVMSAgent(event tp.KubeArmorHostPolicyEvent, identities []uint16) {
+	eventWithIdentity := tp.KubeArmorHostPolicyEventWithIdentity{}
 
 	eventWithIdentity.Event = event
 	eventWithIdentity.CloseConnection = false
@@ -111,7 +111,7 @@ func (dm *KVMS) GetIdentityFromLabelPool(label string) []uint16 {
 // == Host Security Policy Update == //
 // ================================= //
 // UpdateHostSecurityPolicies Function
-func (dm *KVMS) UpdateHostSecurityPolicies(event tp.K8sKubeArmorHostPolicyEvent) {
+func (dm *KVMS) UpdateHostSecurityPolicies(event tp.KubeArmorHostPolicyEvent) {
 	var identities []uint16
 	var labels []string
 	secPolicy := tp.HostSecurityPolicy{}
@@ -157,7 +157,7 @@ func (dm *KVMS) WatchHostSecurityPolicies() {
 
 			decoder := json.NewDecoder(resp.Body)
 			for {
-				event := tp.K8sKubeArmorHostPolicyEvent{}
+				event := tp.KubeArmorHostPolicyEvent{}
 				if err := decoder.Decode(&event); err == io.EOF {
 					break
 				} else if err != nil {

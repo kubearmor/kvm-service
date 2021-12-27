@@ -65,6 +65,8 @@ type KVMS struct {
 	VirtualMachineSecurityPolicies     []tp.VirtualMachineSecurityPolicy
 	VirtualMachineSecurityPoliciesLock *sync.RWMutex
 
+	MapIdentityToEWName           map[uint16]string
+	MapEWNameToIdentity           map[string]uint16
 	MapIdentityToLabel            map[uint16]string
 	MapLabelToIdentities          map[string][]uint16
 	MapVirtualMachineConnIdentity map[uint16]ClientConn
@@ -78,9 +80,33 @@ type KVMS struct {
 }
 
 // NewKVMSDaemon Function
-func NewKVMSDaemon(port int, ipAddress string) *KVMS {
+func NewKVMSDaemon(port int, isnonk8s bool) *KVMS {
 	kg.Print("Initializing all the KVMS daemon attributes")
+	var err error
 	dm := new(KVMS)
+
+	dm.ClusterPort = uint16(port)
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	dm.PodIpAddress = localAddr.IP.String()
+
+	if !isnonk8s {
+		// Get kvmservice external ip
+		dm.ClusteripAddress, err = kc.GetExternalIP(ct.KvmServiceAccountName)
+		if err != nil {
+			kg.Err(err.Error())
+			return nil
+		}
+	} else {
+		kc.IsNonK8sEnv = true
+		// Set IP as localhost for nonk8s environment
+		dm.ClusteripAddress = dm.PodIpAddress
+	}
 
 	dm.EtcdClient = etcd.NewEtcdClient()
 
@@ -92,28 +118,21 @@ func NewKVMSDaemon(port int, ipAddress string) *KVMS {
 	dm.LogFilter = ""
 	dm.IdentityConnPool = nil
 
-	dm.ClusterPort = uint16(port)
-	dm.ClusteripAddress = ipAddress
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer conn.Close()
-
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	dm.PodIpAddress = localAddr.IP.String()
 	dm.Server = ks.NewServerInit(dm.PodIpAddress, dm.ClusteripAddress, strconv.FormatUint(uint64(dm.ClusterPort), 10), dm.EtcdClient)
 
 	dm.HostSecurityPolicies = []tp.HostSecurityPolicy{}
 	dm.HostSecurityPoliciesLock = new(sync.RWMutex)
 	dm.VirtualMachineSecurityPoliciesLock = new(sync.RWMutex)
 
+	dm.MapIdentityToEWName = make(map[uint16]string)
+	dm.MapEWNameToIdentity = make(map[string]uint16)
+
 	dm.MapIdentityToLabel = make(map[uint16]string)
 	dm.MapLabelToIdentities = make(map[string][]uint16)
 	dm.MapVirtualMachineConnIdentity = make(map[uint16]ClientConn)
 
 	dm.WgDaemon = sync.WaitGroup{}
-	kg.Print("KVMService attributes got initialized\n")
+	kg.Print("KVMService attributes got initialized")
 
 	return dm
 }
@@ -152,17 +171,10 @@ func GetOSSigChannel() chan os.Signal {
 // ========== //
 
 // KVMSDaemon Function
-func KVMSDaemon(portPtr int) {
-
-	// Get kvmservice external ip
-	externalIp, err := kc.GetExternalIP(ct.KvmServiceAccountName)
-	if err != nil {
-		kg.Err(err.Error())
-		return
-	}
+func KVMSDaemon(portPtr int, nonk8s bool) {
 
 	// create a daemon
-	dm := NewKVMSDaemon(portPtr, externalIp)
+	dm := NewKVMSDaemon(portPtr, nonk8s)
 
 	// wait for a while
 	time.Sleep(time.Second * 1)
@@ -170,21 +182,28 @@ func KVMSDaemon(portPtr int) {
 	// == //
 	gs.InitGenScript(dm.ClusterPort, dm.ClusteripAddress)
 
-	if K8s.InitK8sClient() {
-		// watch host security policies
-		kg.Print("K8S Client is successfully initialize")
+	if !nonk8s {
+		if K8s.InitK8sClient() {
+			// watch host security policies
+			kg.Print("K8S Client is successfully initialize")
 
-		kg.Print("Watcher triggered for the host policies")
-		go dm.WatchHostSecurityPolicies()
+			kg.Print("Watcher triggered for the host policies")
+			go dm.WatchHostSecurityPolicies()
 
-		kg.Print("Triggered the keepalive ETCD client")
-		go dm.EtcdClient.KeepAliveEtcdConnection()
-
-		kg.Print("Starting gRPC server")
-		go dm.Server.InitServer()
+		} else {
+			kg.Print("K8S client initialization got failed")
+		}
 	} else {
-		kg.Print("K8S client initialization got failed")
+		// Start http server
+		kg.Print("Starting HTTP Server")
+		go ks.InitHttpServer(dm.UpdateHostSecurityPolicies, dm.HandleVm, dm.ListOnboardedVms)
 	}
+
+	kg.Print("Triggered the keepalive ETCD client")
+	go dm.EtcdClient.KeepAliveEtcdConnection()
+
+	kg.Print("Starting gRPC server")
+	go dm.Server.InitServer()
 
 	// wait for a while
 	time.Sleep(time.Second * 1)

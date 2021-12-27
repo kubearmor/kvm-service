@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"strconv"
 	"strings"
@@ -88,17 +89,15 @@ func (s *KVMServer) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 
 	go func() {
 		for loop {
-			// select {
-			// case <-stream.Context().Done():
 			<-stream.Context().Done()
-			closeEvent := tp.K8sKubeArmorHostPolicyEventWithIdentity{}
+			closeEvent := tp.KubeArmorHostPolicyEventWithIdentity{}
 			closeEvent.Identity = GetIdentityFromContext(stream.Context())
 			closeEvent.CloseConnection = true
-			kg.Errf("Closing client connections for identity %d\n", closeEvent.Identity)
+			closeEvent.Err = errors.New("connection")
+			kg.Errf("Closing client connection for identity %d\n", closeEvent.Identity)
 			UpdateETCDLabelToIdentitiesMaps(GetIdentityFromContext(stream.Context()))
 			loop = false
 			PolicyChan <- closeEvent
-			//}
 		}
 	}()
 
@@ -109,23 +108,22 @@ func (s *KVMServer) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 				if !event.CloseConnection {
 					policyBytes, err := json.Marshal(&event.Event)
 					if err != nil {
-						kg.Print("Failed to marshall data")
+						kg.Warn("Failed to marshall data")
 					} else {
 						policy.PolicyData = policyBytes
 						err := stream.Send(&policy)
 						if err != nil {
-							kg.Print("Failed to send")
+							kg.Warn("Failed to send")
 						}
 						response, err := stream.Recv()
 						if err != nil {
-							kg.Print("Failed to recv")
+							kg.Warn("Failed to recv")
 						}
 						kg.Printf("Policy Enforcement status in host :%d", response.Status)
 					}
 				} else {
-					kg.Printf("Context is %d", GetIdentityFromContext(stream.Context()))
-					kg.Print("Closing the connection")
-					return nil
+					kg.Warnf("Closing connection for client [%d]", GetIdentityFromContext(stream.Context()))
+					return event.Err
 				}
 			}
 		default:
