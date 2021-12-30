@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	kg "github.com/kubearmor/KVMService/src/log"
@@ -85,6 +84,7 @@ func InitHttpServer(policyCbFunc tp.KubeArmorHostPolicyEventCallback,
 	//Use the default DefaultServeMux.
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
-		log.Fatal(err)
+		kg.Err(err.Error())
+		return
 	}
 }

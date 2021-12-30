@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log"
 	"math/rand"
 	"reflect"
 	"strconv"
@@ -52,17 +51,20 @@ func (dm *KVMS) UnMapLabelIdentity(identity uint16, ewName string, labels []stri
 
 	err := dm.EtcdClient.EtcdDelete(context.TODO(), ct.KvmOprIdentityToEWName+strconv.FormatUint(uint64(identity), 10))
 	if err != nil {
-		log.Fatal(err)
+		kg.Err(err.Error())
+		return
 	}
 
 	err = dm.EtcdClient.EtcdDelete(context.TODO(), ct.KvmOprEWNameToIdentity+ewName)
 	if err != nil {
-		log.Fatal(err)
+		kg.Err(err.Error())
+		return
 	}
 
 	err = dm.EtcdClient.EtcdDelete(context.TODO(), ct.KvmOprIdentityToLabel+strconv.FormatUint(uint64(identity), 10))
 	if err != nil {
-		log.Fatal(err)
+		kg.Err(err.Error())
+		return
 	}
 
 	for _, label := range labels {
@@ -79,7 +81,8 @@ func (dm *KVMS) UnMapLabelIdentity(identity uint16, ewName string, labels []stri
 		mapStr, _ := json.Marshal(dm.MapLabelToIdentities[label])
 		err = dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprLabelToIdentities+label, string(mapStr))
 		if err != nil {
-			log.Fatal(err)
+			kg.Err(err.Error())
+			return
 		}
 	}
 }
@@ -91,7 +94,8 @@ func (dm *KVMS) UpdateIdentityLabelsMap(identity uint16, labels []string) {
 		dm.MapIdentityToLabel[identity] = label
 		err := dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprIdentityToLabel+strconv.FormatUint(uint64(identity), 10), label)
 		if err != nil {
-			log.Fatal(err)
+			kg.Err(err.Error())
+			return
 		}
 
 		_, found := find(dm.MapLabelToIdentities[label], identity)
@@ -100,7 +104,8 @@ func (dm *KVMS) UpdateIdentityLabelsMap(identity uint16, labels []string) {
 			mapStr, _ := json.Marshal(dm.MapLabelToIdentities[label])
 			err := dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprLabelToIdentities+label, string(mapStr))
 			if err != nil {
-				log.Fatal(err)
+				kg.Err(err.Error())
+				return
 			}
 		}
 	}
@@ -115,13 +120,15 @@ func (dm *KVMS) GenerateVirtualMachineIdentity(name string, labels map[string]st
 			kg.Printf("Mappings identity to ewName=> %v", dm.MapIdentityToEWName)
 			err := dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprIdentityToEWName+strconv.FormatUint(uint64(identity), 10), name)
 			if err != nil {
-				log.Fatal(err)
+				kg.Err(err.Error())
+				return 0
 			}
 
 			kg.Printf("Mappings ewName to identity => %v", dm.MapEWNameToIdentity)
 			err = dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprEWNameToIdentity+name, strconv.FormatUint(uint64(identity), 10))
 			if err != nil {
-				log.Fatal(err)
+				kg.Err(err.Error())
+				return 0
 			}
 
 			return identity
@@ -156,7 +163,7 @@ func (dm *KVMS) ListOnboardedVms() string {
 		vmName := vm.Metadata.Name
 		kvPair, err := dm.EtcdClient.EtcdGet(context.Background(), ct.KvmOprEWNameToIdentity+vmName)
 		if err != nil {
-			log.Fatal(err)
+			kg.Err(err.Error())
 			return ""
 		}
 		vmList = vmList + "\n[ " + vmName + " : " + kvPair[ct.KvmOprEWNameToIdentity+vmName] + " ]"

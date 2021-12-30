@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log"
 	"strconv"
 	"strings"
 
@@ -45,14 +44,14 @@ func UpdateETCDLabelToIdentitiesMaps(identity uint16) {
 
 	labelKV, err := EtcdClient.EtcdGet(context.Background(), ct.KvmOprIdentityToLabel+strconv.Itoa(int(identity)))
 	if err != nil {
-		log.Fatal(err)
+		kg.Err(err.Error())
 		return
 	}
 	label := labelKV[ct.KvmOprIdentityToLabel+strconv.Itoa(int(identity))]
 
 	data, err := EtcdClient.EtcdGetRaw(context.Background(), ct.KvmOprLabelToIdentities+label)
 	if err != nil {
-		log.Fatal(err)
+		kg.Err(err.Error())
 		return
 	}
 
@@ -60,7 +59,7 @@ func UpdateETCDLabelToIdentitiesMaps(identity uint16) {
 	for _, ev := range data.Kvs {
 		err := json.Unmarshal(ev.Value, &arr)
 		if err != nil {
-			log.Fatal(err)
+			kg.Err(err.Error())
 			return
 		}
 		kg.Printf("Removing the identity(%d) from the labels map of ETCD arr:%+v", identity, arr)
@@ -75,7 +74,8 @@ func UpdateETCDLabelToIdentitiesMaps(identity uint16) {
 		mapStr, _ := json.Marshal(arr)
 		err = EtcdClient.EtcdPut(context.Background(), ct.KvmOprLabelToIdentities+label, string(mapStr))
 		if err != nil {
-			log.Fatal(err)
+			kg.Err(err.Error())
+			return
 		}
 	}
 }
@@ -135,7 +135,7 @@ func (s *KVMServer) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 func IsIdentityServing(identity string) int {
 	kvPair, err := EtcdClient.EtcdGet(context.Background(), ct.KvmSvcIdentitiToPodIps+identity)
 	if err != nil {
-		log.Fatal(err)
+		kg.Err(err.Error())
 		return 0
 	}
 
@@ -146,7 +146,8 @@ func IsIdentityServing(identity string) int {
 
 	etcdLabels, err := EtcdClient.EtcdGet(context.Background(), ct.KvmOprIdentityToLabel)
 	if err != nil {
-		log.Fatal(err)
+		kg.Err(err.Error())
+		return 0
 	}
 	for key, value := range etcdLabels {
 		s := strings.Split(key, "/")

@@ -6,7 +6,6 @@ package core
 import (
 	"encoding/json"
 	"io"
-	"log"
 
 	//"sort"
 	"strings"
@@ -37,7 +36,7 @@ func (dm *KVMS) mGetAllEtcdEWLabels() {
 
 	etcdLabels, err := dm.EtcdClient.EtcdGet(context.TODO(), ct.KvmOprLabelToIdentities)
 	if err != nil {
-		log.Fatal(err)
+		kg.Err(err.Error())
 		return
 	}
 
@@ -60,7 +59,7 @@ func (dm *KVMS) GetAllEtcdEWLabels() {
 	kg.Print("Getting the Virtual Machine labels from ETCD")
 	etcdLabels, err := dm.EtcdClient.EtcdGet(context.TODO(), ct.KvmOprLabelToIdentities)
 	if err != nil {
-		log.Fatal(err)
+		kg.Err(err.Error())
 		return
 	}
 
@@ -73,7 +72,7 @@ func (dm *KVMS) GetAllEtcdEWLabels() {
 	for _, label := range dm.EtcdEWLabels {
 		data, err := dm.EtcdClient.EtcdGetRaw(context.TODO(), ct.KvmOprLabelToIdentities+label)
 		if err != nil {
-			log.Fatal(err)
+			kg.Err(err.Error())
 			return
 		}
 
@@ -81,7 +80,7 @@ func (dm *KVMS) GetAllEtcdEWLabels() {
 			var arr []uint16
 			err := json.Unmarshal(ev.Value, &arr)
 			if err != nil {
-				log.Fatal(err)
+				kg.Err(err.Error())
 				return
 			}
 			s := strings.Split(string(ev.Key), "/")
@@ -120,7 +119,8 @@ func (dm *KVMS) UpdateHostSecurityPolicies(event tp.KubeArmorHostPolicyEvent) {
 	secPolicy.Metadata["policyName"] = event.Object.Metadata.Name
 
 	if err := kl.Clone(event.Object.Spec, &secPolicy.Spec); err != nil {
-		log.Fatal("Failed to clone a spec")
+		kg.Err("Failed to clone a spec")
+		return
 	}
 
 	for k, v := range secPolicy.Spec.NodeSelector.MatchLabels {

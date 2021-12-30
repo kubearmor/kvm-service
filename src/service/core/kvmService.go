@@ -6,7 +6,6 @@ package core
 import (
 	//"context"
 
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -88,7 +87,8 @@ func NewKVMSDaemon(port int, isnonk8s bool) *KVMS {
 	dm.ClusterPort = uint16(port)
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
-		log.Fatal(err)
+		kg.Err(err.Error())
+		return nil
 	}
 	defer conn.Close()
 
