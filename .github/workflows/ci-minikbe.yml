@@ -75,7 +75,7 @@ jobs:
         run: |
           sleep 10
           minikube kubectl -- get pods,svc -A
-          karmor vm -v kvm1
+          karmor vm getscript -v kvm1
       
       - name: Run The Script
         run: bash ./kvm1.sh
