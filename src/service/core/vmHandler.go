@@ -188,7 +188,6 @@ func (dm *KVMS) HandleVm(event tp.KubeArmorVirtualMachinePolicyEvent) {
 			dm.VirtualMachineSecurityPolicies = append(dm.VirtualMachineSecurityPolicies, secPolicy)
 			identity := dm.GenerateVirtualMachineIdentity(secPolicy.Metadata.Name, secPolicy.Metadata.NodeSelector.MatchLabels)
 			kg.Printf("Generated the identity(%s) for this CRD:%d", secPolicy.Metadata.Name, identity)
-			//gs.GenerateEWInstallationScript(dm.Port, dm.ClusterIp, secPolicy.Metadata.Name, identity)
 			dm.UpdateIdentityLabelsMap(identity, dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels))
 		}
 	} else if event.Type == "MODIFIED" {
@@ -207,16 +206,11 @@ func (dm *KVMS) HandleVm(event tp.KubeArmorVirtualMachinePolicyEvent) {
 			if reflect.DeepEqual(secPolicy, policy) {
 				dm.VirtualMachineSecurityPolicies = append(dm.VirtualMachineSecurityPolicies[:idx], dm.VirtualMachineSecurityPolicies[idx+1:]...)
 				identity := dm.GetEWIdentityFromName(secPolicy.Metadata.Name)
-				for _, label := range dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels) {
-					kg.Printf("Before: %+v\n", dm.MapLabelToIdentities[label])
+				if ks.IsIdentityServing(strconv.Itoa(int(identity))) == 0 {
+					// If kubearmor is connected, close the connection
+					dm.terminateClientConnection(identity)
 				}
-				//kg.Printf("Before: %+v\n", dm.MapLabelToIdentities[dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels)])
 				dm.UnMapLabelIdentity(identity, secPolicy.Metadata.Name, dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels))
-				for _, label := range dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels) {
-					kg.Printf("After: %+v\n", dm.MapLabelToIdentities[label])
-				}
-				//kg.Printf("After: %+v\n", dm.MapLabelToIdentities[dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels)])
-				dm.terminateClientConnection(identity)
 				break
 			}
 		}
