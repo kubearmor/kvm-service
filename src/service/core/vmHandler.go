@@ -166,7 +166,7 @@ func (dm *KVMS) ListOnboardedVms() string {
 			kg.Err(err.Error())
 			return ""
 		}
-		vmList = vmList + "\n[ " + vmName + " : " + kvPair[ct.KvmOprEWNameToIdentity+vmName] + " ]"
+		vmList = vmList + "\n[ VM : " + vmName + ", Identity : " + kvPair[ct.KvmOprEWNameToIdentity+vmName] + " ]"
 	}
 
 	return vmList
