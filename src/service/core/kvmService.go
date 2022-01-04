@@ -19,6 +19,7 @@ import (
 	ct "github.com/kubearmor/KVMService/src/constants"
 	etcd "github.com/kubearmor/KVMService/src/etcd"
 	kg "github.com/kubearmor/KVMService/src/log"
+	"github.com/kubearmor/KVMService/src/service/cilium"
 	gs "github.com/kubearmor/KVMService/src/service/genscript"
 	ks "github.com/kubearmor/KVMService/src/service/server"
 	tp "github.com/kubearmor/KVMService/src/types"
@@ -196,7 +197,10 @@ func KVMSDaemon(portPtr int, nonk8s bool) {
 	} else {
 		// Start http server
 		kg.Print("Starting HTTP Server")
-		go ks.InitHttpServer(dm.UpdateHostSecurityPolicies, dm.HandleVm, dm.ListOnboardedVms)
+		go ks.InitHttpServer(dm.UpdateHostSecurityPolicies, dm.HandleNetworkPolicyUpdates, dm.HandleVm, dm.ListOnboardedVms)
+
+		kg.Print("Starting Cilium Node Registration Observer")
+		cilium.NodeRegisterWatcherInit(dm.EtcdClient, dm.MapEWNameToIdentity)
 	}
 
 	kg.Print("Triggered the keepalive ETCD client")

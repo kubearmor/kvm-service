@@ -21,6 +21,11 @@ build:
 	cd $(CURDIR); go mod tidy
 	cd $(CURDIR); go build -ldflags "-w -s ${GIT_INFO}" -o kvmservice main.go
 
+.PHONY: debug
+debug:
+	cd $(CURDIR); go mod tidy
+	cd $(CURDIR); go build -gcflags="all=-N -l" -o kvmservice main.go
+
 .PHONY: build-test
 build-test:
 	cd $(CURDIR); go mod tidy

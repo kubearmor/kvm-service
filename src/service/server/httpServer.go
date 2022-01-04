@@ -6,13 +6,15 @@ import (
 	"net/http"
 
 	kg "github.com/kubearmor/KVMService/src/log"
+	"github.com/kubearmor/KVMService/src/service/cilium"
 	tp "github.com/kubearmor/KVMService/src/types"
 )
 
 var (
-	policyEventCb tp.KubeArmorHostPolicyEventCallback
-	vmEventCb     tp.HandleVmCallback
-	vmListCb      tp.ListVmCallback
+	hostPolicyEventCb    tp.KubeArmorHostPolicyEventCallback
+	networkPolicyEventCb cilium.NetworkPolicyRequestCallback
+	vmEventCb            tp.HandleVmCallback
+	vmListCb             tp.ListVmCallback
 )
 
 func HandleVm(w http.ResponseWriter, r *http.Request) {
@@ -33,7 +35,7 @@ func HandleVm(w http.ResponseWriter, r *http.Request) {
 	vmEventCb(vmEvent)
 }
 
-func HandlePolicies(w http.ResponseWriter, r *http.Request) {
+func HandleHostPolicies(w http.ResponseWriter, r *http.Request) {
 
 	policyEvent := tp.KubeArmorHostPolicyEvent{}
 
@@ -47,8 +49,25 @@ func HandlePolicies(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	kg.Printf("Received policy request for VM : policy name [%s]", policyEvent.Object.Metadata.Name)
-	policyEventCb(policyEvent)
+	kg.Printf("Received host policy request for VM : policy name [%s]", policyEvent.Object.Metadata.Name)
+	hostPolicyEventCb(policyEvent)
+}
+
+func HandleNetworkPolicies(w http.ResponseWriter, r *http.Request) {
+	req := cilium.NetworkPolicyRequest{}
+
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&req)
+	if err != nil {
+		kg.Err(err.Error())
+		if _, err = w.Write([]byte("Failed to decode data")); err != nil {
+			return
+		}
+		return
+	}
+
+	kg.Printf("Received network policy request for VM : policy name [%s]", req.Object.Metadata.Name)
+	networkPolicyEventCb(&req)
 }
 
 func HandleLabels(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +83,8 @@ func ListVms(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func InitHttpServer(policyCbFunc tp.KubeArmorHostPolicyEventCallback,
+func InitHttpServer(hostPolicyCbFunc tp.KubeArmorHostPolicyEventCallback,
+	networkPolicyCbFunc cilium.NetworkPolicyRequestCallback,
 	vmCBFunc tp.HandleVmCallback, vmListCbFunc tp.ListVmCallback) {
 
 	// Set routing rule for vm handling
@@ -76,8 +96,11 @@ func InitHttpServer(policyCbFunc tp.KubeArmorHostPolicyEventCallback,
 	vmListCb = vmListCbFunc
 
 	// Set routing rule for policy handling
-	http.HandleFunc("/policy", HandlePolicies)
-	policyEventCb = policyCbFunc
+	http.HandleFunc("/policy/kubearmor", HandleHostPolicies)
+	hostPolicyEventCb = hostPolicyCbFunc
+
+	http.HandleFunc("/policy/cilium", HandleNetworkPolicies)
+	networkPolicyEventCb = networkPolicyCbFunc
 
 	// Set routing rule for label handling
 	http.HandleFunc("/label", HandleLabels)
