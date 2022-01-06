@@ -93,7 +93,7 @@ func (s *KVMServer) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 			closeEvent := tp.KubeArmorHostPolicyEventWithIdentity{}
 			closeEvent.Identity = GetIdentityFromContext(stream.Context())
 			closeEvent.CloseConnection = true
-			closeEvent.Err = errors.New("connection")
+			closeEvent.Err = errors.New("connection closed")
 			kg.Errf("Closing client connection for identity %d\n", closeEvent.Identity)
 			UpdateETCDLabelToIdentitiesMaps(GetIdentityFromContext(stream.Context()))
 			loop = false

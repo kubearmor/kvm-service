@@ -1,14 +1,14 @@
 apiVersion: security.kubearmor.com/v1
 kind: KubeArmorHostPolicy
 metadata:
-  name: ew-khp-01
+  name: khp-01
 spec:
   nodeSelector:
     matchLabels:
-      abc: xyz
+      vm: true
   severity: 5
   file:
     matchPaths:
-    - path: /proc/cpuinfo # cat /etc/passwd
+    - path: /proc/meminfo
   action:
-    Block
+    Audit

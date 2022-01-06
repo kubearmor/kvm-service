@@ -1,7 +1,7 @@
 apiVersion: security.kubearmor.com/v1
 kind: KubeArmorVirtualMachine
 metadata:
-  name: kvm3
+  name: testvm1
   labels:
-    abc: xyz
-      #io.kubernetes.pod.namespace: default 
+    name: vm1
+    vm: true

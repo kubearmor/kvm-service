@@ -1,7 +1,0 @@
-apiVersion: security.kubearmor.com/v1
-kind: KubeArmorVirtualMachine
-metadata:
-  name: test-datapipeline-347
-  labels:
-    abc: xyz
-    def: pqr
