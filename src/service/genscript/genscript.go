@@ -78,7 +78,7 @@ func GenerateEWInstallationScript(virtualmachine, identity string) string {
 	addContent("    sudo docker rm -f kubearmor || true")
 	addContent("fi")
 	addContent("")
-	addContent("KUBEARMOR_IMAGE=\"kubearmor/kubearmor:latest\"")
+	addContent("KUBEARMOR_IMAGE=\"seswarrajan/kubearmor:latest\"")
 	addContent("")
 	addContent("echo \"Launching kubearmor agent...\"")
 	addContent("sudo docker run --name kubearmor $DOCKER_OPTS $KUBEARMOR_IMAGE $KUBEARMOR_OPTS")

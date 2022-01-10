@@ -66,7 +66,7 @@ type KVMS struct {
 
 	MapIdentityToEWName           map[uint16]string
 	MapEWNameToIdentity           map[string]uint16
-	MapIdentityToLabel            map[uint16]string
+	MapIdentityToLabel            map[uint16][]string
 	MapLabelToIdentities          map[string][]uint16
 	MapVirtualMachineConnIdentity map[uint16]ClientConn
 
@@ -127,7 +127,7 @@ func NewKVMSDaemon(port int, isnonk8s bool) *KVMS {
 	dm.MapIdentityToEWName = make(map[uint16]string)
 	dm.MapEWNameToIdentity = make(map[string]uint16)
 
-	dm.MapIdentityToLabel = make(map[uint16]string)
+	dm.MapIdentityToLabel = make(map[uint16][]string)
 	dm.MapLabelToIdentities = make(map[string][]uint16)
 	dm.MapVirtualMachineConnIdentity = make(map[uint16]ClientConn)
 
@@ -196,7 +196,8 @@ func KVMSDaemon(portPtr int, nonk8s bool) {
 	} else {
 		// Start http server
 		kg.Print("Starting HTTP Server")
-		go ks.InitHttpServer(dm.UpdateHostSecurityPolicies, dm.HandleVm, dm.ListOnboardedVms)
+		go ks.InitHttpServer(dm.UpdateHostSecurityPolicies, dm.HandleVm,
+			dm.ListOnboardedVms, dm.HandleVMLabels)
 	}
 
 	kg.Print("Triggered the keepalive ETCD client")

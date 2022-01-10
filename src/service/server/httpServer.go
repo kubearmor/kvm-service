@@ -11,6 +11,7 @@ import (
 var (
 	policyEventCb tp.KubeArmorHostPolicyEventCallback
 	vmEventCb     tp.HandleVmCallback
+	labelEventCb  tp.HandleLabelCallback
 	vmListCb      tp.ListVmCallback
 )
 
@@ -51,7 +52,20 @@ func HandlePolicies(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleLabels(w http.ResponseWriter, r *http.Request) {
-	kg.Printf("Request body for labels : %s\n", r.Body)
+	labelEvent := tp.KubeArmorVirtualMachineLabel{}
+
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&labelEvent)
+	if err != nil {
+		kg.Err(err.Error())
+		if _, err = w.Write([]byte("Failed to decode data")); err != nil {
+			return
+		}
+		return
+	}
+
+	kg.Printf("Received label management request for VM : %s", labelEvent.Name)
+	labelEventCb(labelEvent)
 }
 
 func ListVms(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +78,8 @@ func ListVms(w http.ResponseWriter, r *http.Request) {
 }
 
 func InitHttpServer(policyCbFunc tp.KubeArmorHostPolicyEventCallback,
-	vmCBFunc tp.HandleVmCallback, vmListCbFunc tp.ListVmCallback) {
+	vmCBFunc tp.HandleVmCallback, vmListCbFunc tp.ListVmCallback,
+	labelCbFunc tp.HandleLabelCallback) {
 
 	// Set routing rule for vm handling
 	http.HandleFunc("/vm", HandleVm)
@@ -80,6 +95,7 @@ func InitHttpServer(policyCbFunc tp.KubeArmorHostPolicyEventCallback,
 
 	// Set routing rule for label handling
 	http.HandleFunc("/label", HandleLabels)
+	labelEventCb = labelCbFunc
 
 	//Use the default DefaultServeMux.
 	err := http.ListenAndServe(":8080", nil)

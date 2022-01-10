@@ -91,12 +91,14 @@ func (dm *KVMS) UpdateIdentityLabelsMap(identity uint16, labels []string) {
 
 	for _, label := range labels {
 		kg.Printf("Updating identity to label map identity:%d label:%s", identity, label)
-		dm.MapIdentityToLabel[identity] = label
+		dm.MapIdentityToLabel[identity] = append(dm.MapIdentityToLabel[identity], label)
 		err := dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprIdentityToLabel+strconv.FormatUint(uint64(identity), 10), label)
 		if err != nil {
 			kg.Err(err.Error())
 			return
 		}
+
+		kg.Printf("dm.MapIdentityToLabel[identity] : %v", dm.MapIdentityToLabel[identity])
 
 		_, found := find(dm.MapLabelToIdentities[label], identity)
 		if !found {
@@ -144,7 +146,7 @@ func (dm *KVMS) GetVirtualMachineIdentities(name string) []uint16 {
 	return dm.MapLabelToIdentities[name]
 }
 
-func (dm *KVMS) GetVirtualMachineLabel(identity uint16) string {
+func (dm *KVMS) GetVirtualMachineLabel(identity uint16) []string {
 	return dm.MapIdentityToLabel[identity]
 }
 
@@ -212,6 +214,66 @@ func (dm *KVMS) HandleVm(event tp.KubeArmorVirtualMachinePolicyEvent) {
 				}
 				dm.UnMapLabelIdentity(identity, secPolicy.Metadata.Name, dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels))
 				break
+			}
+		}
+	}
+}
+
+func (dm *KVMS) deleteVmLabels(identity uint16, labels []string) {
+
+	kg.Print("Calling deleteVmLabels")
+
+	for _, label := range labels {
+		identities := dm.MapLabelToIdentities[label]
+		for index, value := range dm.MapLabelToIdentities[label] {
+			if value == identity {
+				identities[index] = identities[len(identities)-1]
+				identities[len(identities)-1] = 0
+				identities = identities[:len(identities)-1]
+			}
+		}
+		// After deleting the identity from the label map
+		// update the etcd with updated label to identities map
+		mapStr, _ := json.Marshal(dm.MapLabelToIdentities[label])
+		err := dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprLabelToIdentities+label, string(mapStr))
+		if err != nil {
+			kg.Err(err.Error())
+			return
+		}
+
+		for index, identityLabel := range dm.MapIdentityToLabel[identity] {
+			kg.Printf(identityLabel)
+			if identityLabel == label {
+				dm.MapIdentityToLabel[identity][index] = ""
+				break
+			}
+		}
+	}
+}
+
+func (dm *KVMS) HandleVMLabels(event tp.KubeArmorVirtualMachineLabel) {
+	var labelStr string
+
+	identity := dm.GetEWIdentityFromName(event.Name)
+	if identity == 0 {
+		kg.Warnf("%s is not configured in DB", event.Name)
+		return
+	}
+
+	if event.Type == "LIST" {
+		labelStr = ""
+		for _, label := range dm.MapIdentityToLabel[identity] {
+			labelStr += label + " "
+		}
+		kg.Printf("The list of assigned labels to VM %s is %s", event.Name, labelStr)
+	} else {
+		// To add or remove labels to the identity/vm
+		for _, label := range event.Labels {
+			if event.Type == "ADD" {
+				dm.UpdateIdentityLabelsMap(identity, dm.convertLabelsToStr(label))
+			} else {
+				// Delete labels from VM
+				dm.deleteVmLabels(identity, dm.convertLabelsToStr(label))
 			}
 		}
 	}
