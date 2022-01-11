@@ -65,7 +65,13 @@ func HandleLabels(w http.ResponseWriter, r *http.Request) {
 	}
 
 	kg.Printf("Received label management request for VM : %s", labelEvent.Name)
-	labelEventCb(labelEvent)
+	labelList := labelEventCb(labelEvent)
+
+	if labelEvent.Type == "LIST" {
+		if _, err := w.Write([]byte(labelList)); err != nil {
+			return
+		}
+	}
 }
 
 func ListVms(w http.ResponseWriter, r *http.Request) {

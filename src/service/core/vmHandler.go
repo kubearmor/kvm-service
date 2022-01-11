@@ -251,13 +251,13 @@ func (dm *KVMS) deleteVmLabels(identity uint16, labels []string) {
 	}
 }
 
-func (dm *KVMS) HandleVMLabels(event tp.KubeArmorVirtualMachineLabel) {
+func (dm *KVMS) HandleVMLabels(event tp.KubeArmorVirtualMachineLabel) string {
 	var labelStr string
 
 	identity := dm.GetEWIdentityFromName(event.Name)
 	if identity == 0 {
 		kg.Warnf("%s is not configured in DB", event.Name)
-		return
+		return ""
 	}
 
 	if event.Type == "LIST" {
@@ -266,6 +266,7 @@ func (dm *KVMS) HandleVMLabels(event tp.KubeArmorVirtualMachineLabel) {
 			labelStr += label + " "
 		}
 		kg.Printf("The list of assigned labels to VM %s is %s", event.Name, labelStr)
+		return labelStr
 	} else {
 		// To add or remove labels to the identity/vm
 		for _, label := range event.Labels {
@@ -277,4 +278,5 @@ func (dm *KVMS) HandleVMLabels(event tp.KubeArmorVirtualMachineLabel) {
 			}
 		}
 	}
+	return ""
 }
