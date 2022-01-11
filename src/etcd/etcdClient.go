@@ -18,6 +18,27 @@ type EtcdClient struct {
 	leaseResponse *clientv3.LeaseGrantResponse
 }
 
+type WatcherAddFunc func(key string, obj interface{})
+type WatcherUpdateFunc func(key string, obj interface{})
+type WatcherDeleteFunc func(key string)
+type WatcherUnmarshalFunc func(bytes []byte) (interface{}, error)
+
+type KeyMeta struct {
+	version int64
+}
+
+type EtcdWatcher struct {
+	client       *EtcdClient
+	prefix       string
+	cache        map[string]*KeyMeta
+	add          WatcherAddFunc
+	update       WatcherUpdateFunc
+	delete       WatcherDeleteFunc
+	unmarshal    WatcherUnmarshalFunc
+	stopChan     chan struct{}
+	pollInterval time.Duration
+}
+
 func NewEtcdClient() *EtcdClient {
 	/* TODO : To enable certificates in cluster and validate the same
 	 * Works fine with minikube
@@ -83,7 +104,6 @@ func (cli *EtcdClient) EtcdGetRaw(ctx context.Context, key string) (*clientv3.Ge
 	}
 	if len(resp.Kvs) == 0 {
 		kg.Print("ETCD: err: No data")
-		return nil, nil
 	}
 
 	return resp, nil
@@ -128,4 +148,110 @@ func (cli *EtcdClient) KeepAliveEtcdConnection() {
 		}
 		time.Sleep(time.Second * 3)
 	}
+}
+
+func NewWatcher(client *EtcdClient, prefix string, interval time.Duration, unmarshal WatcherUnmarshalFunc,
+	add WatcherAddFunc, update WatcherUpdateFunc, delete WatcherDeleteFunc) *EtcdWatcher {
+	cache := make(map[string]*KeyMeta)
+	stop := make(chan struct{}, 1)
+
+	return &EtcdWatcher{
+		client:       client,
+		prefix:       prefix,
+		cache:        cache,
+		add:          add,
+		update:       update,
+		delete:       delete,
+		unmarshal:    unmarshal,
+		stopChan:     stop,
+		pollInterval: interval,
+	}
+}
+
+func (w *EtcdWatcher) Observe(ctx context.Context) {
+	go func() {
+		for {
+			newIteration := true
+			visited := make(map[string]interface{})
+
+		EtcdGet:
+			select {
+			case <-w.stopChan:
+				return
+			case <-w.client.etcdClient.Ctx().Done():
+				return
+			default:
+			}
+
+			resp, err := w.client.EtcdGetRaw(ctx, w.prefix)
+			if err != nil {
+				kg.Err(err.Error())
+				goto Sleep
+			}
+
+			if len(resp.Kvs) == 0 {
+				if newIteration {
+					for k := range w.cache {
+						if w.delete != nil {
+							w.delete(k)
+						}
+					}
+					goto Sleep
+				} else {
+					goto DeleteKey
+				}
+			}
+
+			for _, kv := range resp.Kvs {
+				key := string(kv.Key)
+				visited[key] = nil
+
+				val, err := w.unmarshal(kv.Value)
+				if err != nil {
+					kg.Err(err.Error())
+				}
+
+				if meta, ok := w.cache[key]; ok {
+					// Already existing key
+					if meta.version != kv.Version {
+						meta.version = kv.Version
+						if w.update != nil {
+							w.update(key, val)
+						}
+					}
+				} else {
+					// New key
+					w.cache[key] = &KeyMeta{version: kv.Version}
+					if w.add != nil {
+						w.add(key, val)
+					}
+				}
+			}
+
+			if resp.More {
+				// Do EtcdGet() again.
+				// Don't jump to check for deleted keys.
+				newIteration = false
+				goto EtcdGet
+			}
+
+		DeleteKey:
+			// Check for deleted keys
+			for k := range w.cache {
+				if _, ok := visited[k]; !ok {
+					delete(w.cache, k)
+					if w.delete != nil {
+						w.delete(k)
+					}
+				}
+			}
+
+		Sleep:
+			time.Sleep(w.pollInterval)
+		}
+	}()
+}
+
+func (w *EtcdWatcher) Stop() {
+	close(w.stopChan)
 }

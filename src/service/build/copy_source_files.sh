@@ -34,6 +34,7 @@ cp -r $SERVICE_PATH/../types/ $ARMOR_HOME/build/KVMService/
 cp -r $SERVICE_PATH/core/ $ARMOR_HOME/build/KVMService/service
 cp -r $SERVICE_PATH/genscript/ $ARMOR_HOME/build/KVMService/service
 cp -r $SERVICE_PATH/server/ $ARMOR_HOME/build/KVMService/service
+cp -r $SERVICE_PATH/cilium/ $ARMOR_HOME/build/KVMService/service
 cp -r $SERVICE_PATH/protobuf/ $ARMOR_HOME/build/KVMService/service
 cp $SERVICE_PATH/go.mod $ARMOR_HOME/build/KVMService/service
 cp $SERVICE_PATH/go.sum $ARMOR_HOME/build/KVMService/service

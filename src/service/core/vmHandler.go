@@ -12,6 +12,7 @@ import (
 	kl "github.com/kubearmor/KVMService/src/common"
 	ct "github.com/kubearmor/KVMService/src/constants"
 	kg "github.com/kubearmor/KVMService/src/log"
+	"github.com/kubearmor/KVMService/src/service/cilium"
 	ks "github.com/kubearmor/KVMService/src/service/server"
 	tp "github.com/kubearmor/KVMService/src/types"
 )
@@ -104,6 +105,8 @@ func (dm *KVMS) UpdateIdentityLabelsMap(identity uint16, labels []string) {
 			}
 		}
 	}
+
+	cilium.UpdateLabels(dm.EtcdClient, identity, labels)
 }
 
 func (dm *KVMS) GenerateVirtualMachineIdentity(name string, labels map[string]string) uint16 {
@@ -214,4 +217,8 @@ func (dm *KVMS) HandleVm(event tp.KubeArmorVirtualMachinePolicyEvent) {
 			}
 		}
 	}
+}
+
+func (dm *KVMS) HandleNetworkPolicyUpdates(req *cilium.NetworkPolicyRequest) {
+	cilium.HandlePolicyUpdates(dm.EtcdClient, req)
 }

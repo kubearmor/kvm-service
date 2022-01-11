@@ -19,6 +19,7 @@ import (
 	ct "github.com/kubearmor/KVMService/src/constants"
 	etcd "github.com/kubearmor/KVMService/src/etcd"
 	kg "github.com/kubearmor/KVMService/src/log"
+	"github.com/kubearmor/KVMService/src/service/cilium"
 	gs "github.com/kubearmor/KVMService/src/service/genscript"
 	ks "github.com/kubearmor/KVMService/src/service/server"
 	tp "github.com/kubearmor/KVMService/src/types"
@@ -73,6 +74,7 @@ type KVMS struct {
 
 	ClusterPort      uint16
 	ClusteripAddress string
+	EtcdPort         uint16
 	PodIpAddress     string
 
 	// WgDaemon Handler
@@ -80,7 +82,7 @@ type KVMS struct {
 }
 
 // NewKVMSDaemon Function
-func NewKVMSDaemon(port int, isnonk8s bool) *KVMS {
+func NewKVMSDaemon(port, etcdPort int, isnonk8s bool) *KVMS {
 	kg.Print("Initializing all the KVMS daemon attributes")
 	var err error
 	dm := new(KVMS)
@@ -108,6 +110,7 @@ func NewKVMSDaemon(port int, isnonk8s bool) *KVMS {
 		dm.ClusteripAddress = dm.PodIpAddress
 	}
 
+	dm.EtcdPort = uint16(etcdPort)
 	dm.EtcdClient = etcd.NewEtcdClient()
 
 	dm.MapEtcdEWIdentityLabels = make(map[string]string)
@@ -171,16 +174,16 @@ func GetOSSigChannel() chan os.Signal {
 // ========== //
 
 // KVMSDaemon Function
-func KVMSDaemon(portPtr int, nonk8s bool) {
+func KVMSDaemon(portPtr, etcdPort int, nonk8s bool) {
 
 	// create a daemon
-	dm := NewKVMSDaemon(portPtr, nonk8s)
+	dm := NewKVMSDaemon(portPtr, etcdPort, nonk8s)
 
 	// wait for a while
 	time.Sleep(time.Second * 1)
 
 	// == //
-	gs.InitGenScript(dm.ClusterPort, dm.ClusteripAddress)
+	gs.InitGenScript(dm.ClusterPort, dm.EtcdPort, dm.ClusteripAddress)
 
 	if !nonk8s {
 		if K8s.InitK8sClient() {
@@ -196,7 +199,10 @@ func KVMSDaemon(portPtr int, nonk8s bool) {
 	} else {
 		// Start http server
 		kg.Print("Starting HTTP Server")
-		go ks.InitHttpServer(dm.UpdateHostSecurityPolicies, dm.HandleVm, dm.ListOnboardedVms)
+		go ks.InitHttpServer(dm.UpdateHostSecurityPolicies, dm.HandleNetworkPolicyUpdates, dm.HandleVm, dm.ListOnboardedVms)
+
+		kg.Print("Starting Cilium Node Registration Observer")
+		cilium.NodeRegisterWatcherInit(dm.EtcdClient, dm.MapEWNameToIdentity)
 	}
 
 	kg.Print("Triggered the keepalive ETCD client")

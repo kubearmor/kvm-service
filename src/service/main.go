@@ -48,13 +48,14 @@ func main() {
 	}
 
 	portPtr := flag.Int("port", 32770, "Cluster Port")
+	etcdPortPtr := flag.Int("etcd-port", 2379, "Etcd Port")
 	nonK8sPtr := flag.Bool("non-k8s", false, "Non K8s control plane")
 
 	flag.Parse()
 
 	// == //
 
-	core.KVMSDaemon(*portPtr, *nonK8sPtr)
+	core.KVMSDaemon(*portPtr, *etcdPortPtr, *nonK8sPtr)
 
 	// == //
 }
