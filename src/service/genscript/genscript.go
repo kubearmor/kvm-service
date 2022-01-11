@@ -16,12 +16,14 @@ var (
 
 type GenScriptParams struct {
 	port      uint16
+	etcdPort  uint16
 	ipAddress string
 }
 
-func InitGenScript(Port uint16, IpAddress string) {
+func InitGenScript(Port, etcdPort uint16, IpAddress string) {
 	p.port = Port
 	p.ipAddress = IpAddress
+	p.etcdPort = etcdPort
 }
 
 func addContent(content string) {
@@ -37,7 +39,6 @@ func GenerateEWInstallationScript(virtualmachine, identity string) string {
 
 	addContent("#!/bin/bash")
 	addContent("set -e")
-	addContent("set -x")
 	addContent("shopt -s extglob")
 	addContent("")
 
@@ -83,6 +84,89 @@ func GenerateEWInstallationScript(virtualmachine, identity string) string {
 	addContent("echo \"Launching kubearmor agent...\"")
 	addContent("sudo docker run --name kubearmor $DOCKER_OPTS $KUBEARMOR_IMAGE $KUBEARMOR_OPTS")
 	addContent("")
+
+	cilium := `
+#####################################
+#              CILIUM               #
+#####################################
+echo "Installing Cilium agent..."
+
+`
+	addContent(cilium)
+	addContent("CILIUM_NODE=${CILIUM_NODE:-" + virtualmachine + "}")
+	addContent("CILIUM_ETCD_PORT=${CILIUM_ETCD_PORT:-" + strconv.Itoa(int(p.etcdPort)) + "}")
+
+	cilium = `
+CILIUM_IMAGE=${CILIUM_IMAGE:-kubearmor/cilium:latest}
+HOST_IF=${HOST_IF:-eth+,en+}
+CILIUM_CONFIG=${CILIUM_CONFIG:---devices=$HOST_IF --enable-host-firewall --enable-hubble=true --hubble-listen-address=localhost:4245 --hubble-disable-tls=true --external-workload --enable-well-known-identities=false}
+
+sudo mkdir -p /var/lib/cilium/etcd
+sudo tee /var/lib/cilium/etcd/config.yaml <<EOF >/dev/null
+---
+insecure-transport: true
+endpoints:
+- http://$CLUSTER_IP:$CILIUM_ETCD_PORT
+EOF
+
+CILIUM_OPTS=" --join-cluster --enable-host-reachable-services --enable-endpoint-health-checking=false"
+CILIUM_OPTS+=" --kvstore etcd --kvstore-opt etcd.config=/var/lib/cilium/etcd/config.yaml"
+CILIUM_OPTS+=" $CILIUM_CONFIG"
+if [ -n "$HOST_IP" ] ; then
+    CILIUM_OPTS+=" --ipv4-node $HOST_IP"
+fi
+
+DOCKER_OPTS=" --env CEW_NAME=$CILIUM_NODE"
+DOCKER_OPTS+=" -d --log-driver local --restart always"
+DOCKER_OPTS+=" --privileged --network host --cap-add NET_ADMIN --cap-add SYS_MODULE"
+DOCKER_OPTS+=" --cgroupns=host"
+DOCKER_OPTS+=" --volume /var/lib/cilium/etcd:/var/lib/cilium/etcd"
+DOCKER_OPTS+=" --volume /var/run/cilium:/var/run/cilium"
+DOCKER_OPTS+=" --volume /boot:/boot"
+DOCKER_OPTS+=" --volume /lib/modules:/lib/modules"
+DOCKER_OPTS+=" --volume /sys/fs/bpf:/sys/fs/bpf"
+DOCKER_OPTS+=" --volume /run/xtables.lock:/run/xtables.lock"
+
+cilium_started=false
+retries=4
+while [ $cilium_started = false ]; do
+    if [ -n "$(${SUDO} docker ps -a -q -f name=cilium)" ]; then
+        echo "Shutting down running Cilium agent"
+        ${SUDO} docker rm -f cilium || true
+    fi
+
+    echo "Launching Cilium agent $CILIUM_IMAGE..."
+    ${SUDO} docker run --name cilium $DOCKER_OPTS $CILIUM_IMAGE cilium-agent $CILIUM_OPTS
+
+    # Copy Cilium CLI
+    ${SUDO} docker cp cilium:/usr/bin/cilium /usr/bin/cilium
+
+    # Wait for cilium agent to become available
+    for ((i = 0 ; i < 12; i++)); do
+        if cilium status --brief > /dev/null 2>&1; then
+            cilium_started=true
+            break
+        fi
+        sleep 5s
+        echo "Waiting for Cilium daemon to come up..."
+    done
+
+    echo "Cilium status:"
+    cilium status || true
+
+    if [ "$cilium_started" = true ] ; then
+        echo 'Cilium successfully started!'
+    else
+        if [ $retries -eq 0 ]; then
+            >&2 echo 'Timeout waiting for Cilium to start, retries exhausted.'
+            exit 1
+        fi
+        ((retries--))
+        echo "Restarting Cilium..."
+    fi
+done
+`
+	addContent(cilium)
 
 	kg.Printf("Script data is successfully generated!")
 

@@ -74,6 +74,7 @@ type KVMS struct {
 
 	ClusterPort      uint16
 	ClusteripAddress string
+	EtcdPort         uint16
 	PodIpAddress     string
 
 	// WgDaemon Handler
@@ -81,7 +82,7 @@ type KVMS struct {
 }
 
 // NewKVMSDaemon Function
-func NewKVMSDaemon(port int, isnonk8s bool) *KVMS {
+func NewKVMSDaemon(port, etcdPort int, isnonk8s bool) *KVMS {
 	kg.Print("Initializing all the KVMS daemon attributes")
 	var err error
 	dm := new(KVMS)
@@ -109,6 +110,7 @@ func NewKVMSDaemon(port int, isnonk8s bool) *KVMS {
 		dm.ClusteripAddress = dm.PodIpAddress
 	}
 
+	dm.EtcdPort = uint16(etcdPort)
 	dm.EtcdClient = etcd.NewEtcdClient()
 
 	dm.MapEtcdEWIdentityLabels = make(map[string]string)
@@ -172,16 +174,16 @@ func GetOSSigChannel() chan os.Signal {
 // ========== //
 
 // KVMSDaemon Function
-func KVMSDaemon(portPtr int, nonk8s bool) {
+func KVMSDaemon(portPtr, etcdPort int, nonk8s bool) {
 
 	// create a daemon
-	dm := NewKVMSDaemon(portPtr, nonk8s)
+	dm := NewKVMSDaemon(portPtr, etcdPort, nonk8s)
 
 	// wait for a while
 	time.Sleep(time.Second * 1)
 
 	// == //
-	gs.InitGenScript(dm.ClusterPort, dm.ClusteripAddress)
+	gs.InitGenScript(dm.ClusterPort, dm.EtcdPort, dm.ClusteripAddress)
 
 	if !nonk8s {
 		if K8s.InitK8sClient() {
