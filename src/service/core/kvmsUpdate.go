@@ -6,7 +6,7 @@ package core
 import (
 	"encoding/json"
 	"io"
-	"log"
+	"strconv"
 
 	//"sort"
 	"strings"
@@ -37,7 +37,7 @@ func (dm *KVMS) mGetAllEtcdEWLabels() {
 
 	etcdLabels, err := dm.EtcdClient.EtcdGet(context.TODO(), ct.KvmOprLabelToIdentities)
 	if err != nil {
-		log.Fatal(err)
+		kg.Err(err.Error())
 		return
 	}
 
@@ -60,7 +60,7 @@ func (dm *KVMS) GetAllEtcdEWLabels() {
 	kg.Print("Getting the Virtual Machine labels from ETCD")
 	etcdLabels, err := dm.EtcdClient.EtcdGet(context.TODO(), ct.KvmOprLabelToIdentities)
 	if err != nil {
-		log.Fatal(err)
+		kg.Err(err.Error())
 		return
 	}
 
@@ -73,7 +73,7 @@ func (dm *KVMS) GetAllEtcdEWLabels() {
 	for _, label := range dm.EtcdEWLabels {
 		data, err := dm.EtcdClient.EtcdGetRaw(context.TODO(), ct.KvmOprLabelToIdentities+label)
 		if err != nil {
-			log.Fatal(err)
+			kg.Err(err.Error())
 			return
 		}
 
@@ -81,7 +81,7 @@ func (dm *KVMS) GetAllEtcdEWLabels() {
 			var arr []uint16
 			err := json.Unmarshal(ev.Value, &arr)
 			if err != nil {
-				log.Fatal(err)
+				kg.Err(err.Error())
 				return
 			}
 			s := strings.Split(string(ev.Key), "/")
@@ -97,8 +97,11 @@ func (dm *KVMS) PassOverToKVMSAgent(event tp.KubeArmorHostPolicyEvent, identitie
 	eventWithIdentity.CloseConnection = false
 	for _, identity := range identities {
 		eventWithIdentity.Identity = identity
-		kg.Printf("Sending the event towards the KVMAgent of identity:%v\n", identity)
-		ks.PolicyChan <- eventWithIdentity
+		if ks.IsIdentityServing(strconv.Itoa(int(identity))) == 0 {
+			time.Sleep(1)
+			kg.Printf("Sending the event towards the KVMAgent of identity:%v\n", identity)
+			ks.PolicyChan <- eventWithIdentity
+		}
 	}
 }
 
@@ -120,7 +123,8 @@ func (dm *KVMS) UpdateHostSecurityPolicies(event tp.KubeArmorHostPolicyEvent) {
 	secPolicy.Metadata["policyName"] = event.Object.Metadata.Name
 
 	if err := kl.Clone(event.Object.Spec, &secPolicy.Spec); err != nil {
-		log.Fatal("Failed to clone a spec")
+		kg.Err("Failed to clone a spec")
+		return
 	}
 
 	for k, v := range secPolicy.Spec.NodeSelector.MatchLabels {
