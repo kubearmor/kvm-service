@@ -97,7 +97,7 @@ echo "Installing Cilium agent..."
 	addContent("CILIUM_ETCD_PORT=${CILIUM_ETCD_PORT:-" + strconv.Itoa(int(p.etcdPort)) + "}")
 
 	cilium = `
-CILIUM_IMAGE=${CILIUM_IMAGE:-kubearmor/cilium:latest}
+CILIUM_IMAGE=${CILIUM_IMAGE:-accuknox/cilium:latest}
 HOST_IF=${HOST_IF:-eth+,en+}
 CILIUM_CONFIG=${CILIUM_CONFIG:---devices=$HOST_IF --enable-host-firewall --enable-hubble=true --hubble-listen-address=localhost:4245 --hubble-disable-tls=true --external-workload --enable-well-known-identities=false}
 
