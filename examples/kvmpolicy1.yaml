@@ -1,7 +1,7 @@
 apiVersion: security.kubearmor.com/v1
 kind: KubeArmorVirtualMachine
 metadata:
-  name: testvm2
+  name: testvm1
   labels:
-    name: vm2
+    name: vm1
     vm: true
