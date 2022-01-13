@@ -1,0 +1,14 @@
+apiVersion: security.kubearmor.com/v1
+kind: KubeArmorHostPolicy
+metadata:
+  name: khp-02
+spec:
+  nodeSelector:
+    matchLabels:
+      name: vm1
+  severity: 5
+  file:
+    matchPaths:
+    - path: /proc/cpuinfo
+  action:
+    Block

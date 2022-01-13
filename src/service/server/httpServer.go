@@ -13,7 +13,7 @@ var (
 	hostPolicyEventCb    tp.KubeArmorHostPolicyEventCallback
 	networkPolicyEventCb cilium.NetworkPolicyRequestCallback
 	vmEventCb            tp.HandleVmCallback
-	labelEventCb  tp.HandleLabelCallback
+	labelEventCb         tp.HandleLabelCallback
 	vmListCb             tp.ListVmCallback
 )
 
@@ -92,7 +92,6 @@ func HandleLabels(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
-
 
 func ListVms(w http.ResponseWriter, r *http.Request) {
 	kg.Printf("Received vm-list request")
