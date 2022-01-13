@@ -6,7 +6,6 @@ package core
 import (
 	//"context"
 
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -68,7 +67,7 @@ type KVMS struct {
 
 	MapIdentityToEWName           map[uint16]string
 	MapEWNameToIdentity           map[string]uint16
-	MapIdentityToLabel            map[uint16]string
+	MapIdentityToLabel            map[uint16][]string
 	MapLabelToIdentities          map[string][]uint16
 	MapVirtualMachineConnIdentity map[uint16]ClientConn
 
@@ -90,7 +89,8 @@ func NewKVMSDaemon(port, etcdPort int, isnonk8s bool) *KVMS {
 	dm.ClusterPort = uint16(port)
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
-		log.Fatal(err)
+		kg.Err(err.Error())
+		return nil
 	}
 	defer conn.Close()
 
@@ -130,7 +130,7 @@ func NewKVMSDaemon(port, etcdPort int, isnonk8s bool) *KVMS {
 	dm.MapIdentityToEWName = make(map[uint16]string)
 	dm.MapEWNameToIdentity = make(map[string]uint16)
 
-	dm.MapIdentityToLabel = make(map[uint16]string)
+	dm.MapIdentityToLabel = make(map[uint16][]string)
 	dm.MapLabelToIdentities = make(map[string][]uint16)
 	dm.MapVirtualMachineConnIdentity = make(map[uint16]ClientConn)
 
@@ -199,8 +199,8 @@ func KVMSDaemon(portPtr, etcdPort int, nonk8s bool) {
 	} else {
 		// Start http server
 		kg.Print("Starting HTTP Server")
-		go ks.InitHttpServer(dm.UpdateHostSecurityPolicies, dm.HandleNetworkPolicyUpdates, dm.HandleVm, dm.ListOnboardedVms)
-
+		go ks.InitHttpServer(dm.UpdateHostSecurityPolicies, dm.HandleNetworkPolicyUpdates, 
+		dm.HandleVm, dm.ListOnboardedVms, dm.HandleVMLabels)
 		kg.Print("Starting Cilium Node Registration Observer")
 		cilium.NodeRegisterWatcherInit(dm.EtcdClient, dm.MapEWNameToIdentity)
 	}

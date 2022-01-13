@@ -540,6 +540,13 @@ type KubeArmorHostPolicyEventWithIdentity struct {
 	Err             error
 }
 
+// Label struct for non-k8s control plane
+type KubeArmorVirtualMachineLabel struct {
+	Type   string              `json:"type"`
+	Name   string              `json:"name"`
+	Labels []map[string]string `json:"labels,omitempty"`
+}
+
 /*
 // ================== //
 // == Process Tree == //
@@ -569,5 +576,6 @@ type PidNode struct {
 */
 // VM
 type KubeArmorHostPolicyEventCallback func(KubeArmorHostPolicyEvent)
-type HandleVmCallback func(event KubeArmorVirtualMachinePolicyEvent)
+type HandleVmCallback func(KubeArmorVirtualMachinePolicyEvent)
+type HandleLabelCallback func(KubeArmorVirtualMachineLabel) string
 type ListVmCallback func() string
