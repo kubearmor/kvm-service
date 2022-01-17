@@ -127,7 +127,7 @@ func InitHttpServer(hostPolicyCbFunc tp.KubeArmorHostPolicyEventCallback,
 	labelEventCb = labelCbFunc
 
 	//Use the default DefaultServeMux.
-	err := http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(":8000", nil)
 	if err != nil {
 		kg.Err(err.Error())
 		return
