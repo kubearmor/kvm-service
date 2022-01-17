@@ -63,7 +63,7 @@ jobs:
           minikube kubectl -- apply -f ./src/service/kvmservice.yaml
       
       - name: Configure new VM
-        run: minikube kubectl -- apply -f ./examples/kvmpolicy.yaml
+        run: minikube kubectl -- apply -f ./examples/kvmpolicy1.yaml
 
 #       - name: Checking the logs
 #         run: kubectl logs $(minikube kubectl -- get pods,svc -A | grep pod/kvmsoperator | cut -d ' ' -f 4 | cut -d '/' -f 2) --namespace kube-system
@@ -75,7 +75,7 @@ jobs:
         run: |
           sleep 10
           minikube kubectl -- get pods,svc -A
-          karmor vm getscript -v kvm1
+          karmor vm getscript -v testvm1
       
       - name: Run The Script
-        run: bash ./kvm1.sh
+        run: bash ./testvm1.sh
