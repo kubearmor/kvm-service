@@ -99,7 +99,7 @@ echo "Installing Cilium agent..."
 	cilium = `
 CILIUM_IMAGE=${CILIUM_IMAGE:-accuknox/cilium:latest}
 HOST_IF=${HOST_IF:-eth+,en+}
-CILIUM_CONFIG=${CILIUM_CONFIG:---devices=$HOST_IF --enable-host-firewall --enable-hubble=true --hubble-listen-address=localhost:4245 --hubble-disable-tls=true --external-workload --enable-well-known-identities=false}
+CILIUM_CONFIG=${CILIUM_CONFIG:---devices=$HOST_IF --enable-host-firewall --enable-hubble=true --hubble-listen-address=:4244 --hubble-disable-tls=true --external-workload --enable-well-known-identities=false}
 
 sudo mkdir -p /var/lib/cilium/etcd
 sudo tee /var/lib/cilium/etcd/config.yaml <<EOF >/dev/null
