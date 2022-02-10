@@ -72,7 +72,7 @@ func GenerateEWInstallationScript(virtualmachine, identity string) string {
 	addContent("DOCKER_OPTS+=\" --volume /etc/apparmor.d:/etc/apparmor.d\"")
 	addContent("DOCKER_OPTS+=\" --volume /etc/os-release:/media/root/etc/os-release\"")
 	addContent("")
-	addContent("KUBEARMOR_OPTS=\" -enableKubeArmorVm true -logPath=/tmp/kubearmor.log\"")
+	addContent("KUBEARMOR_OPTS=\" -enableKubeArmorVm true -k8s=false -logPath=/tmp/kubearmor.log\"")
 	addContent("")
 	addContent("if [ -n \"$(sudo docker ps -a -q -f name=kubearmor)\" ]; then")
 	addContent("    echo \"Shutting down running kubearmor agent\"")
