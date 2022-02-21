@@ -6,6 +6,7 @@ package core
 import (
 	//"context"
 
+	"math/rand"
 	"net"
 	"os"
 	"os/signal"
@@ -197,6 +198,8 @@ func KVMSDaemon(portPtr, etcdPort int, nonk8s bool) {
 		if err != nil {
 			kg.Errf("Restoration from ETCD failed err=%s", err.Error())
 		}
+
+		rand.Seed(time.Now().UnixNano())
 
 		// Start http server
 		kg.Print("Starting HTTP Server")
