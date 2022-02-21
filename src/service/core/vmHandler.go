@@ -69,18 +69,29 @@ func (dm *KVMS) UnMapLabelIdentity(identity uint16, ewName string, labels []stri
 	}
 
 	for _, label := range labels {
+		deleted := false
 		identities := dm.MapLabelToIdentities[label]
-		for index, value := range dm.MapLabelToIdentities[label] {
-			if value == identity {
-				identities[index] = identities[len(identities)-1]
-				identities[len(identities)-1] = 0
-				identities = identities[:len(identities)-1]
+		if len(identities) > 1 {
+			for index, value := range dm.MapLabelToIdentities[label] {
+				if value == identity {
+					identities[index] = identities[len(identities)-1]
+					dm.MapLabelToIdentities[label] = identities[:len(identities)-1]
+					break
+				}
 			}
+		} else {
+			delete(dm.MapLabelToIdentities, label)
+			deleted = true
 		}
+
 		// After deleting the identity from the label map
 		// update the etcd with updated label to identities map
-		mapStr, _ := json.Marshal(dm.MapLabelToIdentities[label])
-		err = dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprLabelToIdentities+label, string(mapStr))
+		if deleted {
+			err = dm.EtcdClient.EtcdDelete(context.TODO(), ct.KvmOprLabelToIdentities+label)
+		} else {
+			mapStr, _ := json.Marshal(dm.MapLabelToIdentities[label])
+			err = dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprLabelToIdentities+label, string(mapStr))
+		}
 		if err != nil {
 			kg.Err(err.Error())
 			return
