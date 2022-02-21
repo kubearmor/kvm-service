@@ -61,10 +61,6 @@ type KVMS struct {
 	HostSecurityPolicies     []tp.HostSecurityPolicy
 	HostSecurityPoliciesLock *sync.RWMutex
 
-	// Virtual Machine policies and mappers
-	VirtualMachineSecurityPolicies     []tp.VirtualMachineSecurityPolicy
-	VirtualMachineSecurityPoliciesLock *sync.RWMutex
-
 	MapIdentityToEWName           map[uint16]string
 	MapEWNameToIdentity           map[string]uint16
 	MapIdentityToLabel            map[uint16][]string
@@ -125,7 +121,6 @@ func NewKVMSDaemon(port, etcdPort int, isnonk8s bool) *KVMS {
 
 	dm.HostSecurityPolicies = []tp.HostSecurityPolicy{}
 	dm.HostSecurityPoliciesLock = new(sync.RWMutex)
-	dm.VirtualMachineSecurityPoliciesLock = new(sync.RWMutex)
 
 	dm.MapIdentityToEWName = make(map[uint16]string)
 	dm.MapEWNameToIdentity = make(map[string]uint16)
@@ -197,10 +192,16 @@ func KVMSDaemon(portPtr, etcdPort int, nonk8s bool) {
 			kg.Print("K8S client initialization got failed")
 		}
 	} else {
+		//restore VM names, identities and lables from etcd
+		err := dm.RestoreFromEtcd()
+		if err != nil {
+			kg.Errf("Restoration from ETCD failed err=%s", err.Error())
+		}
+
 		// Start http server
 		kg.Print("Starting HTTP Server")
-		go ks.InitHttpServer(dm.UpdateHostSecurityPolicies, dm.HandleNetworkPolicyUpdates, 
-		dm.HandleVm, dm.ListOnboardedVms, dm.HandleVMLabels)
+		go ks.InitHttpServer(dm.UpdateHostSecurityPolicies, dm.HandleNetworkPolicyUpdates,
+			dm.HandleVm, dm.ListOnboardedVms, dm.HandleVMLabels)
 		kg.Print("Starting Cilium Node Registration Observer")
 		cilium.NodeRegisterWatcherInit(dm.EtcdClient, dm.MapEWNameToIdentity)
 	}
