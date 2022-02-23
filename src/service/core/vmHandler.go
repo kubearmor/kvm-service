@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/rand"
-	"reflect"
 	"strconv"
+	"strings"
 
-	kl "github.com/kubearmor/KVMService/src/common"
 	ct "github.com/kubearmor/KVMService/src/constants"
 	kg "github.com/kubearmor/KVMService/src/log"
 	"github.com/kubearmor/KVMService/src/service/cilium"
@@ -69,18 +69,29 @@ func (dm *KVMS) UnMapLabelIdentity(identity uint16, ewName string, labels []stri
 	}
 
 	for _, label := range labels {
+		deleted := false
 		identities := dm.MapLabelToIdentities[label]
-		for index, value := range dm.MapLabelToIdentities[label] {
-			if value == identity {
-				identities[index] = identities[len(identities)-1]
-				identities[len(identities)-1] = 0
-				identities = identities[:len(identities)-1]
+		if len(identities) > 1 {
+			for index, value := range dm.MapLabelToIdentities[label] {
+				if value == identity {
+					identities[index] = identities[len(identities)-1]
+					dm.MapLabelToIdentities[label] = identities[:len(identities)-1]
+					break
+				}
 			}
+		} else {
+			delete(dm.MapLabelToIdentities, label)
+			deleted = true
 		}
+
 		// After deleting the identity from the label map
 		// update the etcd with updated label to identities map
-		mapStr, _ := json.Marshal(dm.MapLabelToIdentities[label])
-		err = dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprLabelToIdentities+label, string(mapStr))
+		if deleted {
+			err = dm.EtcdClient.EtcdDelete(context.TODO(), ct.KvmOprLabelToIdentities+label)
+		} else {
+			mapStr, _ := json.Marshal(dm.MapLabelToIdentities[label])
+			err = dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprLabelToIdentities+label, string(mapStr))
+		}
 		if err != nil {
 			kg.Err(err.Error())
 			return
@@ -93,7 +104,8 @@ func (dm *KVMS) UpdateIdentityLabelsMap(identity uint16, labels []string) {
 	for _, label := range labels {
 		kg.Printf("Updating identity to label map identity:%d label:%s", identity, label)
 		dm.MapIdentityToLabel[identity] = append(dm.MapIdentityToLabel[identity], label)
-		err := dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprIdentityToLabel+strconv.FormatUint(uint64(identity), 10), label)
+		labelsStr, _ := json.Marshal(dm.MapIdentityToLabel[identity])
+		err := dm.EtcdClient.EtcdPut(context.TODO(), ct.KvmOprIdentityToLabel+strconv.FormatUint(uint64(identity), 10), string(labelsStr))
 		if err != nil {
 			kg.Err(err.Error())
 			return
@@ -162,14 +174,8 @@ func (dm *KVMS) GetVirtualMachineAllLabels() []string {
 func (dm *KVMS) ListOnboardedVms() string {
 	var vmList string
 
-	for _, vm := range dm.VirtualMachineSecurityPolicies {
-		vmName := vm.Metadata.Name
-		kvPair, err := dm.EtcdClient.EtcdGet(context.Background(), ct.KvmOprEWNameToIdentity+vmName)
-		if err != nil {
-			kg.Err(err.Error())
-			return ""
-		}
-		vmList = vmList + "\n[ VM : " + vmName + ", Identity : " + kvPair[ct.KvmOprEWNameToIdentity+vmName] + " ]"
+	for vm, id := range dm.MapEWNameToIdentity {
+		vmList = vmList + fmt.Sprintf("\n[ VM : %s, Identity : %d ]", vm, id)
 	}
 
 	return vmList
@@ -187,35 +193,24 @@ func (dm *KVMS) HandleVm(event tp.KubeArmorVirtualMachinePolicyEvent) {
 
 	if event.Type == "ADDED" {
 		kg.Printf("New Virtual Machine CRD is configured! => %s", secPolicy.Metadata.Name)
-		if !kl.ContainsElement(dm.VirtualMachineSecurityPolicies, secPolicy) {
-			dm.VirtualMachineSecurityPolicies = append(dm.VirtualMachineSecurityPolicies, secPolicy)
+		if _, ok := dm.MapEWNameToIdentity[secPolicy.Metadata.Name]; !ok {
 			identity := dm.GenerateVirtualMachineIdentity(secPolicy.Metadata.Name, secPolicy.Metadata.NodeSelector.MatchLabels)
 			kg.Printf("Generated the identity(%s) for this CRD:%d", secPolicy.Metadata.Name, identity)
 			dm.UpdateIdentityLabelsMap(identity, dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels))
 		}
 	} else if event.Type == "MODIFIED" {
 		kg.Printf("Virtual Machine CRD is Modified! => %s", secPolicy.Metadata.Name)
-		for idx, policy := range dm.VirtualMachineSecurityPolicies {
-			if policy.Metadata.Name == secPolicy.Metadata.Name {
-				dm.VirtualMachineSecurityPolicies[idx] = secPolicy
-				identity := dm.GetEWIdentityFromName(secPolicy.Metadata.Name)
-				dm.UpdateIdentityLabelsMap(identity, dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels))
-				break
-			}
+		if identity, ok := dm.MapEWNameToIdentity[secPolicy.Metadata.Name]; ok {
+			dm.UpdateIdentityLabelsMap(identity, dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels))
 		}
 	} else if event.Type == "DELETED" {
 		kg.Printf("Virtual Machine CRD is Deleted! => %s", secPolicy.Metadata.Name)
-		for idx, policy := range dm.VirtualMachineSecurityPolicies {
-			if reflect.DeepEqual(secPolicy, policy) {
-				dm.VirtualMachineSecurityPolicies = append(dm.VirtualMachineSecurityPolicies[:idx], dm.VirtualMachineSecurityPolicies[idx+1:]...)
-				identity := dm.GetEWIdentityFromName(secPolicy.Metadata.Name)
-				if ks.IsIdentityServing(strconv.Itoa(int(identity))) == 0 {
-					// If kubearmor is connected, close the connection
-					dm.terminateClientConnection(identity)
-				}
-				dm.UnMapLabelIdentity(identity, secPolicy.Metadata.Name, dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels))
-				break
+		if identity, ok := dm.MapEWNameToIdentity[secPolicy.Metadata.Name]; ok {
+			if ks.IsIdentityServing(strconv.Itoa(int(identity))) == 0 {
+				// If kubearmor is connected, close the connection
+				dm.terminateClientConnection(identity)
 			}
+			dm.UnMapLabelIdentity(identity, secPolicy.Metadata.Name, dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels))
 		}
 	}
 }
@@ -284,4 +279,68 @@ func (dm *KVMS) HandleVMLabels(event tp.KubeArmorVirtualMachineLabel) string {
 
 func (dm *KVMS) HandleNetworkPolicyUpdates(req *cilium.NetworkPolicyRequest) {
 	cilium.HandlePolicyUpdates(dm.EtcdClient, req)
+}
+
+func (dm *KVMS) RestoreFromEtcd() error {
+	// 1. Restore MapIdentityToEWName
+	id2Ew, err := dm.EtcdClient.EtcdGet(context.Background(), ct.KvmOprIdentityToEWName)
+	if err != nil {
+		kg.Errf("Failed to retrieve information from etcd key prefix %s", ct.KvmOprIdentityToEWName)
+		return err
+	}
+	for k, v := range id2Ew {
+		idStr := strings.TrimPrefix(k, ct.KvmOprIdentityToEWName)
+		id, _ := strconv.ParseUint(idStr, 10, 0)
+		dm.MapIdentityToEWName[uint16(id)] = v
+	}
+
+	// 2. Restore MapEWNameToIdentity
+	ew2Id, err := dm.EtcdClient.EtcdGet(context.Background(), ct.KvmOprEWNameToIdentity)
+	if err != nil {
+		kg.Errf("Failed to retrieve information from etcd key prefix %s", ct.KvmOprEWNameToIdentity)
+		return err
+	}
+	for k, v := range ew2Id {
+		ew := strings.TrimPrefix(k, ct.KvmOprEWNameToIdentity)
+		id, _ := strconv.ParseUint(v, 10, 0)
+		dm.MapEWNameToIdentity[ew] = uint16(id)
+	}
+
+	// 3. Restore MapIdentityToLabel
+	id2Label, err := dm.EtcdClient.EtcdGet(context.Background(), ct.KvmOprIdentityToLabel)
+	if err != nil {
+		kg.Errf("Failed to retrieve information from etcd key prefix %s", ct.KvmOprIdentityToLabel)
+		return err
+	}
+	for k, v := range id2Label {
+		idStr := strings.TrimPrefix(k, ct.KvmOprIdentityToLabel)
+		id, _ := strconv.ParseUint(idStr, 10, 0)
+		var labels []string
+		err = json.Unmarshal([]byte(v), &labels)
+		if err != nil {
+			kg.Errf("Failed to parse information from etcd key prefix %s", ct.KvmOprIdentityToLabel)
+			return err
+		}
+		dm.MapIdentityToLabel[uint16(id)] = labels
+	}
+
+	// 4. Restore MapLabelToIdentities
+	label2Id, err := dm.EtcdClient.EtcdGet(context.Background(), ct.KvmOprLabelToIdentities)
+	if err != nil {
+		kg.Errf("Failed to retrieve information from etcd key prefix %s", ct.KvmOprLabelToIdentities)
+		return err
+	}
+	for k, v := range label2Id {
+		label := strings.TrimPrefix(k, ct.KvmOprLabelToIdentities)
+		var ids []uint16
+		err = json.Unmarshal([]byte(v), &ids)
+		if err != nil {
+			kg.Errf("Failed to parse information from etcd key prefix %s", ct.KvmOprLabelToIdentities)
+			return err
+		}
+		dm.MapLabelToIdentities[label] = ids
+	}
+
+	kg.Print("Restored information from ETCD")
+	return nil
 }
