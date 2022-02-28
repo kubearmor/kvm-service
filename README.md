@@ -25,3 +25,8 @@ There are organizations who might not support k8s for forseable future and their
 
 ![](./getting-started/res/kvmservice-non-k8s-control-plane.png)
 
+## Additional Documents
+
+* [Deploying KubeArmor at scale on VMs using non-k8s control plane](./getting-started/kvmservice-nonk8s.md)
+
+
