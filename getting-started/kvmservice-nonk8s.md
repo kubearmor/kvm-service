@@ -13,7 +13,7 @@ KVMService(Kubearmor VirtualMachine Service) allows Kubearmor in VMs within the 
 Kvmservice acts as the control plane for VMs for non-k8s(stand-lone) environment.
 
 ## Design of kvmservice as non-k8s control plane
-![Alt Text](../assets/images/kvms-nonk8s.png "kvms-nonk8s")
+![Alt Text](./res/kvmservice-non-k8s-control-plane.png)
 
 ### Components Involved and it's use
 * **Non-K8s Control Plane**
