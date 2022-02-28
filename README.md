@@ -3,6 +3,9 @@
 ## Introduction
 
 Kubearmor Virtual Machine Service allows orchestrating policies to VMs and Bare-Metal environments using either k8s or non-k8s control plane.
+kvmservice can either run as:
+1. k8s service + operator in k8s based control plane
+2. directly on VM/Bare-metal as systemd process
 
 ### Use-cases/Requirements
 - [x] Onboard kubearmor/cilium to virtual machines/bare-metals/edge-devices
@@ -28,5 +31,6 @@ There are organizations who might not support k8s for forseable future and their
 ## Additional Documents
 
 * [Deploying KubeArmor at scale on VMs using non-k8s control plane](./getting-started/kvmservice-nonk8s.md)
+* [Google Slides for initial design discussions](https://docs.google.com/presentation/d/1aa0fVLWHcVkaGbb70Jy6dek7KOYIAailx3and-mjh8M/edit?usp=sharing)
 
 
