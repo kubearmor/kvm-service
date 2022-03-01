@@ -1,0 +1,19 @@
+kind: CiliumNetworkPolicy
+metadata:
+  name: "rule1"
+spec:
+  description: "Allow only certain HTTP endpoints"
+  nodeSelector:
+    matchLabels:
+      name: vm1
+  ingress:
+  - toPorts:
+    - ports:
+      - port: "3000"
+        protocol: TCP
+      rules:
+        http:
+        - method: GET
+          path: "/hello"
+        - method: GET
+          path: "/bye"
