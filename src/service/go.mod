@@ -17,7 +17,7 @@ replace (
 )
 
 require (
-	github.com/kubearmor/KVMService/src/log v0.0.0-00010101000000-000000000000
+	github.com/kubearmor/KVMService/src/log v0.0.0-20220228115540-2211247620dd
 	github.com/kubearmor/KVMService/src/service/config v0.0.0-00010101000000-000000000000
 	github.com/kubearmor/KVMService/src/service/core v0.0.0-00010101000000-000000000000
 )
