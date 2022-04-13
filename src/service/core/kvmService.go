@@ -20,6 +20,7 @@ import (
 	etcd "github.com/kubearmor/KVMService/src/etcd"
 	kg "github.com/kubearmor/KVMService/src/log"
 	"github.com/kubearmor/KVMService/src/service/cilium"
+	cfg "github.com/kubearmor/KVMService/src/service/config"
 	gs "github.com/kubearmor/KVMService/src/service/genscript"
 	ks "github.com/kubearmor/KVMService/src/service/server"
 	tp "github.com/kubearmor/KVMService/src/types"
@@ -170,10 +171,10 @@ func GetOSSigChannel() chan os.Signal {
 // ========== //
 
 // KVMSDaemon Function
-func KVMSDaemon(portPtr, etcdPort int, nonk8s bool) {
+func KVMSDaemon() {
 
 	// create a daemon
-	dm := NewKVMSDaemon(portPtr, etcdPort, nonk8s)
+	dm := NewKVMSDaemon(cfg.GlobalCfg.Port, cfg.GlobalCfg.EtcdPort, cfg.GlobalCfg.NonK8s)
 
 	// wait for a while
 	time.Sleep(time.Second * 1)
@@ -181,7 +182,7 @@ func KVMSDaemon(portPtr, etcdPort int, nonk8s bool) {
 	// == //
 	gs.InitGenScript(dm.ClusterPort, dm.EtcdPort, dm.ClusteripAddress)
 
-	if !nonk8s {
+	if !cfg.GlobalCfg.NonK8s {
 		if K8s.InitK8sClient() {
 			// watch host security policies
 			kg.Print("K8S Client is successfully initialize")

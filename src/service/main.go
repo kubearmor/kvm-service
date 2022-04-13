@@ -4,11 +4,11 @@
 package main
 
 import (
-	"flag"
 	"os"
 	"path/filepath"
 
 	kg "github.com/kubearmor/KVMService/src/log"
+	cfg "github.com/kubearmor/KVMService/src/service/config"
 	"github.com/kubearmor/KVMService/src/service/core"
 )
 
@@ -47,15 +47,15 @@ func main() {
 		return
 	}
 
-	portPtr := flag.Int("port", 32770, "Cluster Port")
-	etcdPortPtr := flag.Int("etcd-port", 2379, "Etcd Port")
-	nonK8sPtr := flag.Bool("non-k8s", false, "Non K8s control plane")
-
-	flag.Parse()
+	err = cfg.LoadConfig()
+	if err != nil {
+		kg.Err(err.Error())
+		return
+	}
 
 	// == //
 
-	core.KVMSDaemon(*portPtr, *etcdPortPtr, *nonK8sPtr)
+	core.KVMSDaemon()
 
 	// == //
 }

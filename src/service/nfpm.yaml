@@ -1,0 +1,32 @@
+name: "kvmservice"
+arch: "${ARCH}"
+platform: "linux"
+version: "${VERSION}"
+section: "default"
+priority: "extra"
+replaces:
+  - kvmservice
+provides:
+  - kvmservice
+maintainer: "Eswar Rajan Subramanian <eswar@accuknox.com>"
+description: |
+  KVM Service - Non-k8s control plane
+vendor: "kubearmor"
+homepage: "https://kubearmor.com"
+license: "Apache 2"
+contents:
+  - dst: /opt/kubearmor
+    type: dir
+  - src: ./kvmservice
+    dst: /opt/kubearmor/kvmservice
+  - src: /opt/kubearmor/kvmservice
+    dst: /usr/local/bin/kvmservice
+    type: symlink
+  - src: ./packaging/kvmservice.yaml
+    dst: /opt/kubearmor/kvmservice.yaml
+    type: config
+  - src: ./packaging/kvmservice.service
+    dst: /usr/lib/systemd/system/kvmservice.service
+    type: config
+scripts:
+  postinstall: packaging/post-install.sh

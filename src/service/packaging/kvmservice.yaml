@@ -1,0 +1,3 @@
+port: 32770
+etcd-port: 2379
+non-k8s: true

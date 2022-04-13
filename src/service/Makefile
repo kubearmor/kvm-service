@@ -138,3 +138,14 @@ ifeq ($(KVMSERVICE_PID), )
 	$(error kvmservice must be running - execute 'make run' first)
 endif
 	sudo $(DLV_EXEC) attach $(KVMSERVICE_PID) --headless -l=:$(DLV_LPORT) --log --api-version 2 $(CURDIR)
+
+.PHONY: local-release
+local-release: build
+ifeq (, $(shell which goreleaser))
+	@{ \
+	set -e ;\
+	go install github.com/goreleaser/goreleaser@latest
+	}
+endif
+	cd $(CURDIR); curl -sfL https://raw.githubusercontent.com/kubearmor/kubearmor-client/main/install.sh | sh -s -- -b .
+	cd $(CURDIR); VERSION=$(shell git describe --tags --always --dirty) goreleaser release --rm-dist --skip-publish --skip-sign --skip-validate
