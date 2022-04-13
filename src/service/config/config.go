@@ -45,11 +45,11 @@ func LoadConfig() error {
 	readCmdLineParams()
 
 	// Read configuration from env var
-	// Note that the env var has to be set in uppercase for e.g, CLUSTER=xyz ./kubearmor
+	// Note that the env var has to be set in uppercase for e.g, PORT=1234 ./kvmservice
 	viper.AutomaticEnv()
 
 	// Read configuration from config file
-	cfgfile := os.Getenv("KUBEARMOR_CFG")
+	cfgfile := os.Getenv("KVMSERVICE_CFG")
 	if cfgfile == "" {
 		cfgfile = "kvmservice.yaml"
 	}
@@ -62,8 +62,8 @@ func LoadConfig() error {
 		}
 	}
 
-	GlobalCfg.Port = int(viper.GetInt32(ConfigPort))
-	GlobalCfg.EtcdPort = int(viper.GetInt32(ConfigEtcdPort))
+	GlobalCfg.Port = viper.GetInt(ConfigPort)
+	GlobalCfg.EtcdPort = viper.GetInt(ConfigEtcdPort)
 	GlobalCfg.NonK8s = viper.GetBool(ConfigNonK8s)
 
 	kg.Printf("config [%+v]", GlobalCfg)
