@@ -12,7 +12,7 @@ maintainer: "Eswar Rajan Subramanian <eswar@accuknox.com>"
 description: |
   KVM Service - Non-k8s control plane
 vendor: "kubearmor"
-homepage: "https://kubearmor.com"
+homepage: "https://kubearmor.io"
 license: "Apache 2"
 contents:
   - dst: /opt/kubearmor

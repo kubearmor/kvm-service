@@ -34,9 +34,9 @@ nfpms:
       - kvmservice
     maintainer: "Eswar Rajan Subramanian <eswar@accuknox.com>"
     description: |
-      Cloud-native Runtime Security Enforcement System
+      Runtime Security Enforcement System for VM
     vendor: "kubearmor"
-    homepage: "https://kubearmor.com"
+    homepage: "https://kubearmor.io"
     license: "Apache 2"
     file_name_template: "{{.ProjectName}}_{{.Version}}_{{.Os}}-{{.Arch}}"
     bindir: /
