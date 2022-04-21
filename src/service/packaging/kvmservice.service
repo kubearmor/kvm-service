@@ -1,0 +1,11 @@
+[Unit]
+Description=KVMService
+
+[Service]
+User=root
+KillMode=process
+WorkingDirectory=/opt/kubearmor/
+ExecStart=/opt/kubearmor/kvmservice
+
+[Install]
+WantedBy=multi-user.target
