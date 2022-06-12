@@ -39,6 +39,9 @@ var (
 
 	DefaultClusterID = 1
 
+	PodNameLabel      = "io.kubernetes.pod.name"
+	PodNamespaceLabel = "io.kubernetes.pod.namespace"
+
 	nodeRegisterWatcher *etcd.EtcdWatcher
 )
 
@@ -142,7 +145,11 @@ func handleNodeRegister(client *etcd.EtcdClient, idMap map[string]uint16, node *
 
 		// 2. Update the node
 		node.NodeIdentity = uint32(id)
-		node.Labels = labels
+
+		setDefaultNodeLabels(node)
+		for k, v := range labels {
+			node.Labels[k] = v
+		}
 
 		node.Cluster = DefaultClusterName
 		node.ClusterID = DefaultClusterID
@@ -168,6 +175,16 @@ func handleNodeRegister(client *etcd.EtcdClient, idMap map[string]uint16, node *
 	} else if len(node.IPAddresses) > 0 {
 		// Node registration Phase 2
 		updateNodeIPs(client, node)
+	}
+}
+
+func setDefaultNodeLabels(node *types.Node) {
+	if node != nil {
+		if node.Labels == nil {
+			node.Labels = map[string]string{}
+		}
+		node.Labels[PodNameLabel] = node.Name
+		node.Labels[PodNamespaceLabel] = DefaultNamespace
 	}
 }
 
