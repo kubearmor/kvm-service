@@ -12,7 +12,7 @@ kvmservice can either run as:
 - [x] Orchestrate kubearmor and cilium policies to VMs
 - [x] Handle observability in a unified manner
 - [x] Support hybrid deployments of k8s and Virtual machines based workloads.
-- [ ] Support automated policy discovery for kubearmor/cilium for VMs
+- [x] Support automated policy discovery for kubearmor/cilium for VMs
 
 > Note: Virtual Machines, Bare-Metal machines, Edge Devices can be used interchangeably in this document.
 
