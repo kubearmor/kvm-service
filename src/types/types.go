@@ -547,6 +547,15 @@ type KubeArmorVirtualMachineLabel struct {
 	Labels []map[string]string `json:"labels,omitempty"`
 }
 
+type KVMSEndpoint struct {
+	VMName   string   `json:"vmName"`
+	Labels   []string `json:"labels"`
+	Identity uint16   `json:"identity"`
+
+	// Namespace will always be `default` until KVM-Service supports multiple namespaces
+	Namespace string `json:"namespace"`
+}
+
 /*
 // ================== //
 // == Process Tree == //

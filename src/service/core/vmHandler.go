@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -172,13 +171,23 @@ func (dm *KVMS) GetVirtualMachineAllLabels() []string {
 }
 
 func (dm *KVMS) ListOnboardedVms() string {
-	var vmList string
+
+	var vmList []tp.KVMSEndpoint
 
 	for vm, id := range dm.MapEWNameToIdentity {
-		vmList = vmList + fmt.Sprintf("\n[ VM : %s, Identity : %d ]", vm, id)
+		labels := dm.MapIdentityToLabel[id]
+		endpoint := tp.KVMSEndpoint{
+			VMName:    vm,
+			Identity:  id,
+			Labels:    labels,
+			Namespace: "default",
+		}
+		vmList = append(vmList, endpoint)
 	}
 
-	return vmList
+	result, _ := json.Marshal(vmList)
+
+	return string(result)
 }
 
 func (dm *KVMS) HandleVm(event tp.KubeArmorVirtualMachinePolicyEvent) {
