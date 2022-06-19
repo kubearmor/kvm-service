@@ -2,6 +2,12 @@ package types
 
 import (
 	"net"
+
+	"github.com/cilium/cilium/pkg/annotation"
+	ipamTypes "github.com/cilium/cilium/pkg/ipam/types"
+	ciliumv2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
+	"github.com/cilium/cilium/pkg/node/addressing"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type NumericIdentity uint32
@@ -24,19 +30,8 @@ type IPIdentityPair struct {
 	NamedPorts   []NamedPort     `json:"NamedPorts,omitempty"`
 }
 
-type AddressType string
-
-const (
-	NodeHostName         AddressType = "Hostname"
-	NodeExternalIP       AddressType = "ExternalIP"
-	NodeInternalIP       AddressType = "InternalIP"
-	NodeExternalDNS      AddressType = "ExternalDNS"
-	NodeInternalDNS      AddressType = "InternalDNS"
-	NodeCiliumInternalIP AddressType = "CiliumInternalIP"
-)
-
 type Address struct {
-	Type AddressType
+	Type addressing.AddressType
 	IP   net.IP
 }
 
@@ -51,7 +46,7 @@ const (
 	Generated      Source = "generated"
 )
 
-type Node struct {
+type RegisterNode struct {
 	Name            string
 	Cluster         string
 	IPAddresses     []Address
@@ -72,12 +67,68 @@ const (
 	ResourceTypeCiliumClusterwideNetworkPolicy = "CiliumClusterwideNetworkPolicy"
 )
 
-func (n *Node) GetHostIP() net.IP {
+func (n *RegisterNode) GetHostIP() net.IP {
 	for _, addr := range n.IPAddresses {
-		if addr.Type == NodeInternalIP {
+		if addr.Type == addressing.NodeInternalIP {
 			return addr.IP
 		}
 	}
 
 	return nil
+}
+
+// ToCiliumNode converts the node to a CiliumNode
+func (n *RegisterNode) ToCiliumNode() *ciliumv2.CiliumNode {
+	var (
+		podCIDRs               []string
+		ipAddrs                []ciliumv2.NodeAddress
+		healthIPv4, healthIPv6 string
+		annotations            = map[string]string{}
+	)
+
+	if n.IPv4AllocCIDR != nil {
+		podCIDRs = append(podCIDRs, n.IPv4AllocCIDR.String())
+	}
+	if n.IPv6AllocCIDR != nil {
+		podCIDRs = append(podCIDRs, n.IPv6AllocCIDR.String())
+	}
+	if n.IPv4HealthIP != nil {
+		healthIPv4 = n.IPv4HealthIP.String()
+	}
+	if n.IPv6HealthIP != nil {
+		healthIPv6 = n.IPv6HealthIP.String()
+	}
+
+	for _, address := range n.IPAddresses {
+		ipAddrs = append(ipAddrs, ciliumv2.NodeAddress{
+			Type: address.Type,
+			IP:   address.IP.String(),
+		})
+	}
+
+	if n.WireguardPubKey != "" {
+		annotations[annotation.WireguardPubKey] = n.WireguardPubKey
+	}
+
+	return &ciliumv2.CiliumNode{
+		ObjectMeta: v1.ObjectMeta{
+			Name:        n.Name,
+			Labels:      n.Labels,
+			Annotations: annotations,
+		},
+		Spec: ciliumv2.NodeSpec{
+			Addresses: ipAddrs,
+			HealthAddressing: ciliumv2.HealthAddressingSpec{
+				IPv4: healthIPv4,
+				IPv6: healthIPv6,
+			},
+			Encryption: ciliumv2.EncryptionSpec{
+				Key: int(n.EncryptionKey),
+			},
+			IPAM: ipamTypes.IPAMSpec{
+				PodCIDRs: podCIDRs,
+			},
+			NodeIdentity: uint64(n.NodeIdentity),
+		},
+	}
 }

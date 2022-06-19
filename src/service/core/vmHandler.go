@@ -125,6 +125,11 @@ func (dm *KVMS) UpdateIdentityLabelsMap(identity uint16, labels []string) {
 	cilium.UpdateLabels(dm.EtcdClient, identity, labels)
 }
 
+func (dm *KVMS) UpdateAnnotations(identity uint16, annotations map[string]string) {
+	// Currently VM annotations are only used for Cilium
+	cilium.UpdateAnnotations(dm.EtcdClient, dm.MapIdentityToEWName[identity], annotations)
+}
+
 func (dm *KVMS) GenerateVirtualMachineIdentity(name string, labels map[string]string) uint16 {
 	for {
 		identity := uint16(rand.Uint32()) // #nosec
@@ -210,7 +215,8 @@ func (dm *KVMS) HandleVm(event tp.KubeArmorVirtualMachinePolicyEvent) {
 	} else if event.Type == "MODIFIED" {
 		kg.Printf("Virtual Machine CRD is Modified! => %s", secPolicy.Metadata.Name)
 		if identity, ok := dm.MapEWNameToIdentity[secPolicy.Metadata.Name]; ok {
-			dm.UpdateIdentityLabelsMap(identity, dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels))
+			//dm.UpdateIdentityLabelsMap(identity, dm.convertLabelsToStr(secPolicy.Metadata.NodeSelector.MatchLabels))
+			dm.UpdateAnnotations(identity, event.Object.Metadata.Annotations)
 		}
 	} else if event.Type == "DELETED" {
 		kg.Printf("Virtual Machine CRD is Deleted! => %s", secPolicy.Metadata.Name)

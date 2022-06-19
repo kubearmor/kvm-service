@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	v2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
 	"github.com/google/uuid"
 	etcd "github.com/kubearmor/KVMService/src/etcd"
 	"github.com/kubearmor/KVMService/src/log"
@@ -19,6 +20,12 @@ import (
 	ct "github.com/kubearmor/KVMService/src/types"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+var NodeInitialized map[string]bool
+
+func init() {
+	NodeInitialized = make(map[string]bool)
+}
 
 type NetworkPolicyRequest struct {
 	Type   string        `json:"type"`
@@ -105,9 +112,20 @@ func UpdateLabels(client *etcd.EtcdClient, identity uint16, lbls []string) {
 	}
 }
 
+func UpdateAnnotations(client *etcd.EtcdClient, nodeName string, annotations map[string]string) {
+	node := getNodeEntity(client, nodeName)
+	if node == nil {
+		log.Err(fmt.Sprintf("Cannot fetch information about VM %s from ETCD", nodeName))
+		return
+	}
+
+	node.Annotations = annotations
+	updateNodeEntity(client, node)
+}
+
 func NodeRegisterWatcherInit(client *etcd.EtcdClient, idMap map[string]uint16) {
 	handlerFunc := func(key string, obj interface{}) {
-		if node, ok := obj.(*types.Node); !ok {
+		if node, ok := obj.(*types.RegisterNode); !ok {
 			log.Err(fmt.Sprintf("Invalid Node object type %s received: %+v", reflect.TypeOf(obj), obj))
 		} else {
 			handleNodeRegister(client, idMap, node)
@@ -127,9 +145,11 @@ func NodeRegisterWatcherInit(client *etcd.EtcdClient, idMap map[string]uint16) {
 	nodeRegisterWatcher.Observe(context.TODO())
 }
 
-func handleNodeRegister(client *etcd.EtcdClient, idMap map[string]uint16, node *types.Node) {
+func handleNodeRegister(client *etcd.EtcdClient, idMap map[string]uint16, node *types.RegisterNode) {
 	if node.NodeIdentity == 0 {
 		// Node registration Phase 1
+
+		NodeInitialized[node.Name] = false
 
 		// 1. Based on node.Name get the identity and labels
 		id := idMap[node.Name]
@@ -174,11 +194,15 @@ func handleNodeRegister(client *etcd.EtcdClient, idMap map[string]uint16, node *
 
 	} else if len(node.IPAddresses) > 0 {
 		// Node registration Phase 2
-		updateNodeIPs(client, node)
+		if !NodeInitialized[node.Name] {
+			updateNodeEntity(client, node.ToCiliumNode())
+			updateNodeIPs(client, node)
+			NodeInitialized[node.Name] = true
+		}
 	}
 }
 
-func setDefaultNodeLabels(node *types.Node) {
+func setDefaultNodeLabels(node *types.RegisterNode) {
 	if node != nil {
 		if node.Labels == nil {
 			node.Labels = map[string]string{}
@@ -188,7 +212,42 @@ func setDefaultNodeLabels(node *types.Node) {
 	}
 }
 
-func updateNodeIPs(client *etcd.EtcdClient, node *types.Node) {
+func getNodeEntity(client *etcd.EtcdClient, node string) *v2.CiliumNode {
+	var ciliumNode v2.CiliumNode
+
+	key := path.Join(kvstore.NodePrefix, node)
+
+	resp, err := client.EtcdGet(context.TODO(), key)
+	if err != nil {
+		log.Err(err.Error())
+		return nil
+	}
+
+	err = json.Unmarshal([]byte(resp[key]), &ciliumNode)
+	if err != nil {
+		log.Err(err.Error())
+		return nil
+	}
+
+	return &ciliumNode
+}
+
+func updateNodeEntity(client *etcd.EtcdClient, node *v2.CiliumNode) {
+	key := path.Join(kvstore.NodePrefix, node.Name)
+
+	marshaledEntry, err := json.Marshal(node)
+	if err != nil {
+		log.Err(fmt.Sprintf("Unable to JSON marshal entry %#v", node))
+		log.Err(err.Error())
+	}
+
+	err = client.EtcdPut(context.TODO(), key, string(marshaledEntry))
+	if err != nil {
+		log.Err(err.Error())
+	}
+}
+
+func updateNodeIPs(client *etcd.EtcdClient, node *types.RegisterNode) {
 	for _, addr := range node.IPAddresses {
 		key := path.Join(kvstore.IPCachePrefix, DefaultNamespace, addr.IP.String())
 
@@ -243,7 +302,7 @@ func getNodeLabels(client *etcd.EtcdClient, identity uint16) map[string]string {
 }
 
 func nodeRegisterUnmarshal(bytes []byte) (interface{}, error) {
-	var node types.Node
+	var node types.RegisterNode
 
 	err := json.Unmarshal(bytes, &node)
 	if err != nil {
