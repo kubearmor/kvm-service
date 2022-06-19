@@ -66,7 +66,7 @@ func HandleNetworkPolicies(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	kg.Printf("Received network policy request for VM : policy name [%s]", req.Object.Metadata.Name)
+	kg.Printf("Received network policy request for VM : policy name [%s]", req.Object.Name)
 	networkPolicyEventCb(&req)
 }
 
