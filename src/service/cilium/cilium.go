@@ -10,15 +10,17 @@ import (
 	"strings"
 	"time"
 
-	v2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
+	ci "github.com/cilium/cilium/pkg/identity"
+	k8sConst "github.com/cilium/cilium/pkg/k8s/apis/cilium.io"
+	cu "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/utils"
+	cv2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
+	cl "github.com/cilium/cilium/pkg/labels"
+	cnt "github.com/cilium/cilium/pkg/node/types"
+
 	"github.com/google/uuid"
 	etcd "github.com/kubearmor/KVMService/src/etcd"
 	"github.com/kubearmor/KVMService/src/log"
 	"github.com/kubearmor/KVMService/src/service/cilium/kvstore"
-	"github.com/kubearmor/KVMService/src/service/cilium/labels"
-	"github.com/kubearmor/KVMService/src/service/cilium/types"
-	ct "github.com/kubearmor/KVMService/src/types"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var NodeInitialized map[string]bool
@@ -28,14 +30,8 @@ func init() {
 }
 
 type NetworkPolicyRequest struct {
-	Type   string        `json:"type"`
-	Object NetworkPolicy `json:"object"`
-}
-
-type NetworkPolicy struct {
-	Metadata v1.ObjectMeta   `json:"metadata"`
-	Spec     *types.Rule     `json:"spec"`
-	Status   ct.PolicyStatus `json:"status,omitempty"`
+	Type   string                  `json:"type"`
+	Object cv2.CiliumNetworkPolicy `json:"object"`
 }
 
 type NetworkPolicyRequestCallback func(*NetworkPolicyRequest)
@@ -56,7 +52,7 @@ func HandlePolicyUpdates(client *etcd.EtcdClient, req *NetworkPolicyRequest) {
 	if (req.Type == "ADDED") || (req.Type == "MODIFIED") {
 		policy := req.Object
 
-		name := policy.Metadata.Name
+		name := policy.Name
 		ccnp := policy.Spec
 		ccnp.Labels = getPolicyLabels(name, uuid.New().String())
 
@@ -75,7 +71,7 @@ func HandlePolicyUpdates(client *etcd.EtcdClient, req *NetworkPolicyRequest) {
 		}
 
 	} else if req.Type == "DELETED" {
-		name := req.Object.Metadata.Name
+		name := req.Object.Name
 
 		key := path.Join(kvstore.PolicyPrefix, name)
 		err := client.EtcdDelete(context.TODO(), key)
@@ -88,11 +84,11 @@ func HandlePolicyUpdates(client *etcd.EtcdClient, req *NetworkPolicyRequest) {
 	}
 }
 
-func getPolicyLabels(name, uid string) labels.LabelArray {
-	return labels.LabelArray{
-		labels.NewLabel(labels.PolicyLabelName, name, labels.LabelSourceKVM),
-		labels.NewLabel(labels.PolicyLabelUID, uid, labels.LabelSourceKVM),
-		labels.NewLabel(labels.PolicyLabelDerivedFrom, types.ResourceTypeCiliumClusterwideNetworkPolicy, labels.LabelSourceKVM),
+func getPolicyLabels(name, uid string) cl.LabelArray {
+	return cl.LabelArray{
+		cl.NewLabel(k8sConst.PolicyLabelName, name, cl.LabelSourceK8s),
+		cl.NewLabel(k8sConst.PolicyLabelUID, uid, cl.LabelSourceK8s),
+		cl.NewLabel(k8sConst.PolicyLabelDerivedFrom, cu.ResourceTypeCiliumClusterwideNetworkPolicy, cl.LabelSourceK8s),
 	}
 }
 
@@ -100,10 +96,10 @@ func UpdateLabels(client *etcd.EtcdClient, identity uint16, lbls []string) {
 	key := path.Join(kvstore.IdentityPrefix, strconv.Itoa(int(identity)))
 
 	// 1. Parse labels => LabelMap
-	lblMap := labels.NewLabelMap(lbls)
+	lblMap := cl.NewLabelsFromModel(lbls)
 
 	// 2. Stringify
-	value := lblMap.SortedList()
+	value := string(lblMap.SortedList())
 
 	// 3. Push it to etcd
 	err := client.EtcdPut(context.TODO(), key, value)
@@ -125,7 +121,7 @@ func UpdateAnnotations(client *etcd.EtcdClient, nodeName string, annotations map
 
 func NodeRegisterWatcherInit(client *etcd.EtcdClient, idMap map[string]uint16) {
 	handlerFunc := func(key string, obj interface{}) {
-		if node, ok := obj.(*types.RegisterNode); !ok {
+		if node, ok := obj.(*cnt.Node); !ok {
 			log.Err(fmt.Sprintf("Invalid Node object type %s received: %+v", reflect.TypeOf(obj), obj))
 		} else {
 			handleNodeRegister(client, idMap, node)
@@ -145,7 +141,7 @@ func NodeRegisterWatcherInit(client *etcd.EtcdClient, idMap map[string]uint16) {
 	nodeRegisterWatcher.Observe(context.TODO())
 }
 
-func handleNodeRegister(client *etcd.EtcdClient, idMap map[string]uint16, node *types.RegisterNode) {
+func handleNodeRegister(client *etcd.EtcdClient, idMap map[string]uint16, node *cnt.Node) {
 	if node.NodeIdentity == 0 {
 		// Node registration Phase 1
 
@@ -202,7 +198,7 @@ func handleNodeRegister(client *etcd.EtcdClient, idMap map[string]uint16, node *
 	}
 }
 
-func setDefaultNodeLabels(node *types.RegisterNode) {
+func setDefaultNodeLabels(node *cnt.Node) {
 	if node != nil {
 		if node.Labels == nil {
 			node.Labels = map[string]string{}
@@ -212,8 +208,8 @@ func setDefaultNodeLabels(node *types.RegisterNode) {
 	}
 }
 
-func getNodeEntity(client *etcd.EtcdClient, node string) *v2.CiliumNode {
-	var ciliumNode v2.CiliumNode
+func getNodeEntity(client *etcd.EtcdClient, node string) *cv2.CiliumNode {
+	var ciliumNode cv2.CiliumNode
 
 	key := path.Join(kvstore.NodePrefix, node)
 
@@ -232,7 +228,7 @@ func getNodeEntity(client *etcd.EtcdClient, node string) *v2.CiliumNode {
 	return &ciliumNode
 }
 
-func updateNodeEntity(client *etcd.EtcdClient, node *v2.CiliumNode) {
+func updateNodeEntity(client *etcd.EtcdClient, node *cv2.CiliumNode) {
 	key := path.Join(kvstore.NodePrefix, node.Name)
 
 	marshaledEntry, err := json.Marshal(node)
@@ -247,16 +243,16 @@ func updateNodeEntity(client *etcd.EtcdClient, node *v2.CiliumNode) {
 	}
 }
 
-func updateNodeIPs(client *etcd.EtcdClient, node *types.RegisterNode) {
+func updateNodeIPs(client *etcd.EtcdClient, node *cnt.Node) {
 	for _, addr := range node.IPAddresses {
 		key := path.Join(kvstore.IPCachePrefix, DefaultNamespace, addr.IP.String())
 
 		// 1. Prepare IPIdentityPair
-		entry := types.IPIdentityPair{
+		entry := ci.IPIdentityPair{
 			IP:           addr.IP,
 			Metadata:     "",
-			HostIP:       node.GetHostIP(),
-			ID:           types.NumericIdentity(node.NodeIdentity),
+			HostIP:       node.GetK8sNodeIP(),
+			ID:           ci.NumericIdentity(node.NodeIdentity),
 			Key:          node.EncryptionKey,
 			K8sNamespace: DefaultNamespace,
 			K8sPodName:   node.Name,
@@ -294,7 +290,7 @@ func getNodeLabels(client *etcd.EtcdClient, identity uint16) map[string]string {
 		if lbl == "" {
 			continue
 		}
-		label := labels.ParseLabel(lbl)
+		label := cl.ParseLabel(lbl)
 		labelMap[label.Key] = label.Value
 	}
 
@@ -302,7 +298,7 @@ func getNodeLabels(client *etcd.EtcdClient, identity uint16) map[string]string {
 }
 
 func nodeRegisterUnmarshal(bytes []byte) (interface{}, error) {
-	var node types.RegisterNode
+	var node cnt.Node
 
 	err := json.Unmarshal(bytes, &node)
 	if err != nil {
