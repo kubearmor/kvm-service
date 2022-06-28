@@ -5,12 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"math/rand"
+	"regexp"
 	"strconv"
 	"strings"
 
+	cl "github.com/cilium/cilium/pkg/labels"
+	ca "github.com/cilium/cilium/pkg/policy/api"
 	ct "github.com/kubearmor/KVMService/src/constants"
 	kg "github.com/kubearmor/KVMService/src/log"
 	"github.com/kubearmor/KVMService/src/service/cilium"
+	"github.com/kubearmor/KVMService/src/service/cilium/kvstore"
 	ks "github.com/kubearmor/KVMService/src/service/server"
 	tp "github.com/kubearmor/KVMService/src/types"
 )
@@ -353,6 +357,44 @@ func (dm *KVMS) RestoreFromEtcd() error {
 			return err
 		}
 		dm.MapLabelToIdentities[label] = ids
+	}
+
+	// 5. Restore Labels in Cilium Node Cache
+	for id, name := range dm.MapIdentityToEWName {
+		if labels, ok := dm.MapIdentityToLabel[id]; ok {
+			ciliumLabels := cl.NewLabelsFromModel(labels).LabelArray()
+			cilium.NodeCache[name] = &cilium.NodeInfo{Labels: ciliumLabels}
+		}
+	}
+
+	// 6. Restore Policy Count in Cilium Node Cache
+	policies, err := dm.EtcdClient.EtcdGet(context.Background(), kvstore.PolicyPrefix)
+	if err != nil {
+		kg.Errf("Failed to retrieve information from etcd key prefix %s", kvstore.PolicyPrefix)
+		return err
+	}
+	for key, policy := range policies {
+		policyName := strings.TrimPrefix(key, (kvstore.PolicyPrefix + "/"))
+		regex, _ := regexp.Compile("^00-allow-[a-z0-9-]*-egress-control-plane$")
+		if regex.MatchString(policyName) {
+			// default egress control plane policy
+			continue
+		}
+		var ccnp ca.Rule
+		err = json.Unmarshal([]byte(policy), &ccnp)
+		if err != nil {
+			kg.Errf("Failed to parse information from etcd key prefix %s", key)
+			return err
+		}
+		if len(ccnp.Egress) > 0 {
+			nodeSelector := ccnp.NodeSelector
+			for _, nodeInfo := range cilium.NodeCache {
+				nodeLabel := nodeInfo.Labels
+				if nodeSelector.Matches(nodeLabel) {
+					nodeInfo.EgressPolicyCount++
+				}
+			}
+		}
 	}
 
 	kg.Print("Restored information from ETCD")

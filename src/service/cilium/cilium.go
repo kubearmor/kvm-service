@@ -14,8 +14,11 @@ import (
 	k8sConst "github.com/cilium/cilium/pkg/k8s/apis/cilium.io"
 	cu "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/utils"
 	cv2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
+	ck8sv1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
 	cl "github.com/cilium/cilium/pkg/labels"
 	cnt "github.com/cilium/cilium/pkg/node/types"
+	ca "github.com/cilium/cilium/pkg/policy/api"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/google/uuid"
 	etcd "github.com/kubearmor/KVMService/src/etcd"
@@ -23,10 +26,16 @@ import (
 	"github.com/kubearmor/KVMService/src/service/cilium/kvstore"
 )
 
-var NodeInitialized map[string]bool
+type NodeInfo struct {
+	Labels            cl.LabelArray
+	Initialized       bool
+	EgressPolicyCount uint32
+}
+
+var NodeCache map[string]*NodeInfo
 
 func init() {
-	NodeInitialized = make(map[string]bool)
+	NodeCache = make(map[string]*NodeInfo)
 }
 
 type NetworkPolicyRequest struct {
@@ -50,38 +59,173 @@ var (
 
 func HandlePolicyUpdates(client *etcd.EtcdClient, req *NetworkPolicyRequest) {
 	if (req.Type == "ADDED") || (req.Type == "MODIFIED") {
-		policy := req.Object
-
-		name := policy.Name
-		ccnp := policy.Spec
-		ccnp.Labels = getPolicyLabels(name, uuid.New().String())
-
-		key := path.Join(kvstore.PolicyPrefix, name)
-		value, err := json.Marshal(ccnp)
-		if err != nil {
-			log.Err(fmt.Sprintf("Unable to JSON marshal entry %#v", value))
-			log.Err(err.Error())
-			return
-		}
-
-		err = client.EtcdPut(context.TODO(), key, string(value))
+		handleDefaultCtrlPlanePolicy(client, req)
+		err := updatePolicy(client, &req.Object)
 		if err != nil {
 			log.Err(err.Error())
 			return
 		}
 
 	} else if req.Type == "DELETED" {
-		name := req.Object.Name
-
-		key := path.Join(kvstore.PolicyPrefix, name)
-		err := client.EtcdDelete(context.TODO(), key)
+		err := deletePolicy(client, &req.Object)
 		if err != nil {
 			log.Err(err.Error())
 			return
 		}
+		handleDefaultCtrlPlanePolicy(client, req)
 	} else {
 		log.Printf("Invalid network policy request. Request type=%s", req.Type)
 	}
+}
+
+func handleDefaultCtrlPlanePolicy(client *etcd.EtcdClient, req *NetworkPolicyRequest) {
+	ccnp := req.Object
+	selectorLabels := ccnp.Spec.NodeSelector
+
+	// 1. Get the list of nodes that matches the NodeSelector
+	matchedNodes := []string{}
+	if len(ccnp.Spec.Egress) > 0 {
+		for nodeName, nodeInfo := range NodeCache {
+			nodeLabel := nodeInfo.Labels
+			if selectorLabels.Matches(nodeLabel) {
+				matchedNodes = append(matchedNodes, nodeName)
+			}
+		}
+	}
+
+	if (req.Type == "ADDED") || (req.Type == "MODIFIED") {
+		if oldSpec := getPolicy(client, ccnp.Name); oldSpec != nil {
+			// user is updating an existing policy
+			// Old policy and new policy might have different node selectors
+			// So handle deletion of the old policy
+			oldCCnp := newCCNP(ccnp.Name)
+			oldCCnp.Spec = oldSpec
+			handleDefaultCtrlPlanePolicy(client, &NetworkPolicyRequest{"DELETED", oldCCnp})
+		}
+
+		// 2. Increment the policy counter
+		for _, nodeName := range matchedNodes {
+			nodeInfo := NodeCache[nodeName]
+			nodeInfo.EgressPolicyCount++
+
+			// 3. This is when the first egress policy is applied to a node.
+			//    Apply the default control plane policy before applying anything else.
+			if nodeInfo.EgressPolicyCount == 1 {
+				defPolicy := buildDefaultCtrlPlanePolicy(nodeName, nodeInfo.Labels)
+				err := updatePolicy(client, defPolicy)
+				if err != nil {
+					log.Err(err.Error())
+					return
+				}
+			}
+		}
+	} else if req.Type == "DELETED" {
+		// 2. Decrement the policy counter
+		for _, nodeName := range matchedNodes {
+			nodeInfo := NodeCache[nodeName]
+			if nodeInfo.EgressPolicyCount > 0 {
+				nodeInfo.EgressPolicyCount--
+			}
+
+			// 2. This is when all the egress policy are deleted.
+			//    Remove the default control plane policy.
+			if nodeInfo.EgressPolicyCount == 0 {
+				defPolicy := buildDefaultCtrlPlanePolicy(nodeName, nodeInfo.Labels)
+				err := deletePolicy(client, defPolicy)
+				if err != nil {
+					log.Err(err.Error())
+					return
+				}
+			}
+		}
+	}
+}
+
+func newCCNP(name string) cv2.CiliumNetworkPolicy {
+	return cv2.CiliumNetworkPolicy{
+		TypeMeta:   v1.TypeMeta{Kind: cu.ResourceTypeCiliumClusterwideNetworkPolicy},
+		ObjectMeta: v1.ObjectMeta{Name: name},
+	}
+}
+
+func buildDefaultCtrlPlanePolicy(node string, selector cl.LabelArray) *cv2.CiliumNetworkPolicy {
+	policyName := fmt.Sprintf("00-allow-%s-egress-control-plane", node)
+	description := fmt.Sprintf("Egress policy of %s to allow control plane access", node)
+
+	ccnp := newCCNP(policyName)
+	ccnp.Spec = &ca.Rule{
+		Description: description,
+		NodeSelector: ca.EndpointSelector{
+			LabelSelector: &ck8sv1.LabelSelector{MatchLabels: make(map[string]string)},
+		},
+		Egress: []ca.EgressRule{{
+			EgressCommonRule: ca.EgressCommonRule{ToEntities: ca.EntitySlice{"world"}},
+			ToPorts:          ca.PortRules{{Ports: []ca.PortProtocol{{Port: "2379", Protocol: ca.ProtoTCP}}}},
+		}},
+	}
+
+	for _, lbl := range selector {
+		ccnp.Spec.NodeSelector.MatchLabels[lbl.Key] = lbl.Value
+	}
+
+	return &ccnp
+}
+
+func getPolicy(client *etcd.EtcdClient, name string) *ca.Rule {
+	var spec ca.Rule
+
+	key := path.Join(kvstore.PolicyPrefix, name)
+	resp, err := client.EtcdGet(context.TODO(), key)
+	if err != nil {
+		log.Err(err.Error())
+		return nil
+	}
+
+	if len(resp) == 0 {
+		return nil
+	}
+
+	err = json.Unmarshal([]byte(resp[key]), &spec)
+	if err != nil {
+		log.Err(err.Error())
+		return nil
+	}
+
+	return &spec
+}
+
+func updatePolicy(client *etcd.EtcdClient, ccnp *cv2.CiliumNetworkPolicy) error {
+	if ccnp == nil {
+		return nil
+	}
+
+	ccnp.Spec.Labels = getPolicyLabels(ccnp.Name, uuid.New().String())
+
+	key := path.Join(kvstore.PolicyPrefix, ccnp.Name)
+	value, err := json.Marshal(ccnp.Spec)
+	if err != nil {
+		return err
+	}
+
+	err = client.EtcdPut(context.TODO(), key, string(value))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func deletePolicy(client *etcd.EtcdClient, ccnp *cv2.CiliumNetworkPolicy) error {
+	if ccnp == nil {
+		return nil
+	}
+
+	key := path.Join(kvstore.PolicyPrefix, ccnp.Name)
+	err := client.EtcdDelete(context.TODO(), key)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func getPolicyLabels(name, uid string) cl.LabelArray {
@@ -145,8 +289,6 @@ func handleNodeRegister(client *etcd.EtcdClient, idMap map[string]uint16, node *
 	if node.NodeIdentity == 0 {
 		// Node registration Phase 1
 
-		NodeInitialized[node.Name] = false
-
 		// 1. Based on node.Name get the identity and labels
 		id := idMap[node.Name]
 		if id == 0 {
@@ -163,8 +305,8 @@ func handleNodeRegister(client *etcd.EtcdClient, idMap map[string]uint16, node *
 		node.NodeIdentity = uint32(id)
 
 		setDefaultNodeLabels(node)
-		for k, v := range labels {
-			node.Labels[k] = v
+		for _, lbl := range labels {
+			node.Labels[lbl.Key] = lbl.Value
 		}
 
 		node.Cluster = DefaultClusterName
@@ -173,7 +315,17 @@ func handleNodeRegister(client *etcd.EtcdClient, idMap map[string]uint16, node *
 		node.IPv4AllocCIDR = nil
 		node.IPv6AllocCIDR = nil
 
-		// 3. Push it to etcd
+		// 3. Update Cache
+		nodeInfo, ok := NodeCache[node.Name]
+		if ok {
+			nodeInfo.Initialized = false
+		} else {
+			nodeInfo := NodeInfo{}
+			nodeInfo.Labels = labels
+			NodeCache[node.Name] = &nodeInfo
+		}
+
+		// 4. Push it to etcd
 		key := path.Join(kvstore.NodeRegisterPrefix, node.Name)
 		value, err := json.Marshal(node)
 		if err != nil {
@@ -190,10 +342,10 @@ func handleNodeRegister(client *etcd.EtcdClient, idMap map[string]uint16, node *
 
 	} else if len(node.IPAddresses) > 0 {
 		// Node registration Phase 2
-		if !NodeInitialized[node.Name] {
+		if nodeInfo, ok := NodeCache[node.Name]; ok && !nodeInfo.Initialized {
 			updateNodeEntity(client, node.ToCiliumNode())
 			updateNodeIPs(client, node)
-			NodeInitialized[node.Name] = true
+			nodeInfo.Initialized = true
 		}
 	}
 }
@@ -275,8 +427,8 @@ func updateNodeIPs(client *etcd.EtcdClient, node *cnt.Node) {
 	}
 }
 
-func getNodeLabels(client *etcd.EtcdClient, identity uint16) map[string]string {
-	labelMap := make(map[string]string)
+func getNodeLabels(client *etcd.EtcdClient, identity uint16) cl.LabelArray {
+	labelArr := cl.LabelArray{}
 	id := strconv.Itoa(int(identity))
 	key := path.Join(kvstore.IdentityPrefix, id)
 	resp, err := client.EtcdGet(context.TODO(), key)
@@ -291,10 +443,10 @@ func getNodeLabels(client *etcd.EtcdClient, identity uint16) map[string]string {
 			continue
 		}
 		label := cl.ParseLabel(lbl)
-		labelMap[label.Key] = label.Value
+		labelArr = append(labelArr, label)
 	}
 
-	return labelMap
+	return labelArr
 }
 
 func nodeRegisterUnmarshal(bytes []byte) (interface{}, error) {
