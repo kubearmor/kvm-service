@@ -91,14 +91,14 @@ func (dm *KVMS) GetAllEtcdEWLabels() {
 }
 
 func (dm *KVMS) PassOverToKVMSAgent(event tp.KubeArmorHostPolicyEvent, identities []uint16) {
-	eventWithIdentity := tp.KubeArmorHostPolicyEventWithIdentity{}
-
-	eventWithIdentity.Event = event
-	eventWithIdentity.CloseConnection = false
 	for _, identity := range identities {
-		eventWithIdentity.Identity = identity
+		eventWithIdentity := tp.KubeArmorHostPolicyEventWithIdentity{
+			Event:           event,
+			CloseConnection: false,
+			Identity:        identity,
+		}
 		if ks.IsIdentityServing(strconv.Itoa(int(identity))) == 0 {
-			time.Sleep(1)
+			//time.Sleep(1)
 			kg.Printf("Sending the event towards the KVMAgent of identity:%v\n", identity)
 			ks.PolicyChan <- eventWithIdentity
 		}

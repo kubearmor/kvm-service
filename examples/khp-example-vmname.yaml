@@ -1,11 +1,11 @@
 apiVersion: security.kubearmor.com/v1
 kind: KubeArmorHostPolicy
 metadata:
-  name: khp-02
+  name: khp-03
 spec:
   nodeSelector:
     matchLabels:
-      name: vm1
+      vm: enable
   severity: 5
   file:
     matchPaths:

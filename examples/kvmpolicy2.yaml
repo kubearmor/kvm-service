@@ -4,4 +4,4 @@ metadata:
   name: testvm2
   labels:
     name: vm2
-    vm: true
+    vm: enable
