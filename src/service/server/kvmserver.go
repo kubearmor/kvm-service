@@ -86,6 +86,8 @@ func (s *KVMServer) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 	loop = true
 
 	kg.Print("Started Policy Streamer\n")
+	IdentityToStreamMap[GetIdentityFromContext(stream.Context())] = stream
+	IdentityToConnStatus[GetIdentityFromContext(stream.Context())] = true
 
 	go func() {
 		for loop {
@@ -94,9 +96,10 @@ func (s *KVMServer) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 			closeEvent.Identity = GetIdentityFromContext(stream.Context())
 			closeEvent.CloseConnection = true
 			closeEvent.Err = errors.New("connection closed")
-			kg.Errf("Closing client connection for identity %d\n", closeEvent.Identity)
+			kg.Warnf("Closing client connection for identity %d\n", closeEvent.Identity)
 			UpdateETCDLabelToIdentitiesMaps(GetIdentityFromContext(stream.Context()))
 			loop = false
+			IdentityToConnStatus[GetIdentityFromContext(stream.Context())] = false
 			PolicyChan <- closeEvent
 		}
 	}()
@@ -104,27 +107,26 @@ func (s *KVMServer) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 	for {
 		select {
 		case event := <-PolicyChan:
-			if event.Identity == GetIdentityFromContext(stream.Context()) {
-				if !event.CloseConnection {
-					policyBytes, err := json.Marshal(&event.Event)
-					if err != nil {
-						kg.Warn("Failed to marshall data")
-					} else {
-						policy.PolicyData = policyBytes
-						err := stream.Send(&policy)
-						if err != nil {
-							kg.Warn("Failed to send")
-						}
-						response, err := stream.Recv()
-						if err != nil {
-							kg.Warn("Failed to recv")
-						}
-						kg.Printf("Policy Enforcement status in host :%d", response.Status)
-					}
+			if IdentityToConnStatus[event.Identity] {
+				policyBytes, err := json.Marshal(&event.Event)
+				if err != nil {
+					kg.Warn("Failed to marshall data")
 				} else {
-					kg.Warnf("Closing connection for client [%d]", GetIdentityFromContext(stream.Context()))
-					return event.Err
+					policyStream := IdentityToStreamMap[event.Identity]
+					policy.PolicyData = policyBytes
+					err := policyStream.Send(&policy)
+					if err != nil {
+						kg.Warn("Failed to send")
+					}
+					response, err := stream.Recv()
+					if err != nil {
+						kg.Warn("Failed to recv")
+					}
+					kg.Printf("Policy Enforcement status in host :%d", response.Status)
 				}
+			} else {
+				kg.Warnf("Closing connection for client [%d]", GetIdentityFromContext(stream.Context()))
+				return event.Err
 			}
 		default:
 			continue

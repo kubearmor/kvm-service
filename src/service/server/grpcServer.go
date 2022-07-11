@@ -11,11 +11,13 @@ import (
 )
 
 var (
-	PolicyChan  chan tp.KubeArmorHostPolicyEventWithIdentity
-	ClusterIp   string
-	Clusterport string
-	podIp       string
-	EtcdClient  *etcd.EtcdClient
+	PolicyChan           chan tp.KubeArmorHostPolicyEventWithIdentity
+	ClusterIp            string
+	Clusterport          string
+	podIp                string
+	EtcdClient           *etcd.EtcdClient
+	IdentityToStreamMap  map[uint16]pb.KVM_SendPolicyServer
+	IdentityToConnStatus map[uint16]bool
 )
 
 // Variables / Struct
@@ -31,6 +33,8 @@ func NewServerInit(ipAddress, ClusterIpAddress, portVal string, Etcd *etcd.EtcdC
 	Clusterport = portVal
 	EtcdClient = Etcd
 	ClusterIp = ClusterIpAddress
+	IdentityToStreamMap = make(map[uint16]pb.KVM_SendPolicyServer)
+	IdentityToConnStatus = make(map[uint16]bool)
 	return &Server{podIp: ipAddress, port: portVal, EtcdClient: EtcdClient}
 }
 
