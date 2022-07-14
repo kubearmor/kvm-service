@@ -86,8 +86,11 @@ func (s *KVMServer) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 	loop = true
 
 	kg.Print("Started Policy Streamer\n")
-	IdentityToStreamMap[GetIdentityFromContext(stream.Context())] = stream
-	IdentityToConnStatus[GetIdentityFromContext(stream.Context())] = true
+	connection := PolicyServerConn{
+		Stream: stream,
+		Status: true,
+	}
+	ConnCache[GetIdentityFromContext(stream.Context())] = connection
 
 	go func() {
 		for loop {
@@ -99,7 +102,11 @@ func (s *KVMServer) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 			kg.Warnf("Closing client connection for identity %d\n", closeEvent.Identity)
 			UpdateETCDLabelToIdentitiesMaps(GetIdentityFromContext(stream.Context()))
 			loop = false
-			IdentityToConnStatus[GetIdentityFromContext(stream.Context())] = false
+			conn := PolicyServerConn{
+				Stream: stream,
+				Status: true,
+			}
+			ConnCache[GetIdentityFromContext(stream.Context())] = conn
 			PolicyChan <- closeEvent
 		}
 	}()
@@ -107,12 +114,12 @@ func (s *KVMServer) SendPolicy(stream pb.KVM_SendPolicyServer) error {
 	for {
 		select {
 		case event := <-PolicyChan:
-			if IdentityToConnStatus[event.Identity] {
+			if ConnCache[event.Identity].Status {
 				policyBytes, err := json.Marshal(&event.Event)
 				if err != nil {
 					kg.Warn("Failed to marshall data")
 				} else {
-					policyStream := IdentityToStreamMap[event.Identity]
+					policyStream := ConnCache[event.Identity].Stream
 					policy.PolicyData = policyBytes
 					err := policyStream.Send(&policy)
 					if err != nil {
