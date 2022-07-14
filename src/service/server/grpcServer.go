@@ -11,13 +11,12 @@ import (
 )
 
 var (
-	PolicyChan           chan tp.KubeArmorHostPolicyEventWithIdentity
-	ClusterIp            string
-	Clusterport          string
-	podIp                string
-	EtcdClient           *etcd.EtcdClient
-	IdentityToStreamMap  map[uint16]pb.KVM_SendPolicyServer
-	IdentityToConnStatus map[uint16]bool
+	PolicyChan  chan tp.KubeArmorHostPolicyEventWithIdentity
+	ClusterIp   string
+	Clusterport string
+	podIp       string
+	EtcdClient  *etcd.EtcdClient
+	ConnCache   map[uint16]PolicyServerConn
 )
 
 // Variables / Struct
@@ -27,14 +26,18 @@ type Server struct {
 	EtcdClient *etcd.EtcdClient
 }
 
+type PolicyServerConn struct {
+	Stream pb.KVM_SendPolicyServer
+	Status bool
+}
+
 func NewServerInit(ipAddress, ClusterIpAddress, portVal string, Etcd *etcd.EtcdClient) *Server {
 	kg.Printf("Initiliazing the KVMServer => podip:%v clusterIP:%v clusterPort:%v", ipAddress, ClusterIpAddress, portVal)
 	podIp = ipAddress
 	Clusterport = portVal
 	EtcdClient = Etcd
 	ClusterIp = ClusterIpAddress
-	IdentityToStreamMap = make(map[uint16]pb.KVM_SendPolicyServer)
-	IdentityToConnStatus = make(map[uint16]bool)
+	ConnCache = make(map[uint16]PolicyServerConn)
 	return &Server{podIp: ipAddress, port: portVal, EtcdClient: EtcdClient}
 }
 
