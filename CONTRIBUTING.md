@@ -34,10 +34,6 @@ Contributions to kvmservice go beyond code. You can also contribute in the follo
 
 4. **Community Engagement**: Participate in discussions, provide feedback, and assist other contributors on the [KubeArmor Slack](https://kubearmor.slack.com/) and other community channels.
 
-## Getting Started
-
-For detailed instructions on how to set up the development environment, build, and test kvmservice, refer to our [Contribution Guide](./CONTRIBUTING.md).
-
 ## Code of Conduct
 
 When contributing to kvmservice, please adhere to our [Code of Conduct](./CODE_OF_CONDUCT.md). We aim to create a welcoming and inclusive environment for all contributors.
